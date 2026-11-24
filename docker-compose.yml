@@ -11,8 +11,15 @@ services:
     # its real IP addresses (shown in /admin to connect the tablet).
     network_mode: host
     volumes:
-      # Photos stored on the host, in ./photos
-      - ./photos:/app/photos
+      # Photos folder on the host: a local folder or a folder on an external disk.
+      # Set PHOTOS_PATH (and PHOTOS_CREATE / PHOTOS_EXTERNAL) in .env, see .env.example.
+      - type: bind
+        source: ${PHOTOS_PATH:-./photos}
+        target: /app/photos
+        bind:
+          # missing folder: created (then handed over to PUID:PGID by the entrypoint),
+          # or "false" to refuse to start instead
+          create_host_path: ${PHOTOS_CREATE:-true}
       # Frames (transparent PNG or SVG), editable without rebuilding the image
       - ./frames:/app/frames:ro
       # Settings saved from /admin
@@ -32,6 +39,10 @@ services:
       - CAMERA_DRIVER=${CAMERA_DRIVER:-canon-eos-1000d}
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
+      # Photos folder: path on the host (for messages), external disk expected or not
+      - PHOTOS_HOST_PATH=${PHOTOS_PATH:-./photos}
+      - PHOTOS_EXTERNAL=${PHOTOS_EXTERNAL:-false}
+      - STORAGE_MIN_FREE_MB=${STORAGE_MIN_FREE_MB:-200}
       - DEFAULT_DELAY=${DEFAULT_DELAY:-5}
       # Messages before the countdown: translated defaults; set them here to override
       # (an empty value hides the message)

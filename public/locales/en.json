@@ -116,6 +116,12 @@
     "autofocusUnsupported": "This camera cannot be focused remotely.",
     "unresponsive": "The camera is plugged in but not responding (asleep?). Wake it up, or switch it off and on again."
   },
+  "storage": {
+    "notMounted": "Photo storage: the photos folder is not mounted from the host, photos would be lost. Check PHOTOS_PATH.",
+    "externalMissing": "Photo storage: the external disk is not plugged in or not mounted. Photos are blocked.",
+    "notWritable": "Photo storage: the photos folder cannot be written (read-only or unplugged disk?). Photos are blocked.",
+    "full": "Photo storage: the disk is almost full. Free some space or use another disk."
+  },
   "cameras": {
     "canon-eos-1000d": {
       "liveUnavailable": "Live view unavailable: set the camera's mode dial to P, Av, Tv or M and enable “Live View shooting” in the menu.",
@@ -126,7 +132,9 @@
         "On the camera, half-press the shutter button (without pressing it fully) until it beeps: focus is set.",
         "Without touching the focus ring, set the lens AF/MF switch to MF."
       ],
-      "toAutoSteps": ["On the lens, set the AF/MF switch to AF."],
+      "toAutoSteps": [
+        "On the lens, set the AF/MF switch to AF."
+      ],
       "focusDone": "Focus done! Now switch the lens to MF.",
       "unresponsive": "The camera is not responding (asleep?). Half-press its shutter button to wake it up, or switch it off and on again."
     }

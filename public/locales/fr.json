@@ -116,6 +116,12 @@
     "autofocusUnsupported": "Cet appareil ne permet pas de lancer la mise au point à distance.",
     "unresponsive": "L'appareil est branché mais ne répond pas (en veille ?). Réveillez-le, ou éteignez-le puis rallumez-le."
   },
+  "storage": {
+    "notMounted": "Stockage des photos : le dossier des photos n'est pas monté depuis l'hôte, les photos seraient perdues. Vérifiez PHOTOS_PATH.",
+    "externalMissing": "Stockage des photos : le disque externe n'est pas branché ou pas monté. Les photos sont bloquées.",
+    "notWritable": "Stockage des photos : impossible d'écrire dans le dossier des photos (disque en lecture seule ou débranché ?). Les photos sont bloquées.",
+    "full": "Stockage des photos : le disque est presque plein. Libérez de la place ou utilisez un autre disque."
+  },
   "cameras": {
     "canon-eos-1000d": {
       "liveUnavailable": "Direct indisponible : mettez la molette de l'appareil sur P, Av, Tv ou M et activez « Visée par l'écran » dans le menu.",
@@ -126,7 +132,9 @@
         "Sur l'appareil, appuyez à mi-course sur le déclencheur (sans l'enfoncer) jusqu'au bip : le point est fait.",
         "Sans toucher la bague de mise au point, mettez le sélecteur AF/MF de l'objectif sur MF."
       ],
-      "toAutoSteps": ["Sur l'objectif, mettez le sélecteur AF/MF sur AF."],
+      "toAutoSteps": [
+        "Sur l'objectif, mettez le sélecteur AF/MF sur AF."
+      ],
       "focusDone": "Point fait ! Basculez maintenant l'objectif sur MF.",
       "unresponsive": "L'appareil ne répond pas (en veille ?). Appuyez à mi-course sur son déclencheur pour le réveiller, ou éteignez-le puis rallumez-le."
     }

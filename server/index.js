@@ -13,6 +13,7 @@ const frames = require('./frames');
 const settings = require('./settings');
 const themes = require('./themes');
 const i18n = require('./i18n');
+const storage = require('./storage');
 
 const PORT = Number(process.env.PORT || 3000);
 const PHOTOS_DIR = path.resolve(process.env.PHOTOS_DIR || path.join(__dirname, '..', 'photos'));
@@ -30,11 +31,16 @@ const PUID = process.env.PUID ? Number(process.env.PUID) : null;
 const PGID = process.env.PGID ? Number(process.env.PGID) : null;
 const IMAGE_RE = /\.(jpe?g)$/i;
 
-fs.mkdirSync(CACHE_DIR, { recursive: true });
-fs.mkdirSync(ORIGINALS_DIR, { recursive: true });
-chownSafe(PHOTOS_DIR);
-chownSafe(CACHE_DIR);
-chownSafe(ORIGINALS_DIR);
+// Normally prepared by docker/entrypoint.sh; a storage problem must not stop the server
+// (it is reported in /admin and on the tablet, and photos are refused).
+for (const dir of [CACHE_DIR, ORIGINALS_DIR]) {
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    chownSafe(dir);
+  } catch (err) {
+    console.error(`[storage] cannot create ${dir}: ${err.message}`);
+  }
+}
 settings.load();
 chownSafe(settings.CONFIG_DIR);
 
@@ -78,6 +84,26 @@ function translate(m) {
   if (!m) return null;
   return m.camera ? cameraText(m.camera) : tr(m.key, m.vars);
 }
+
+/* ------------------------------------------------------------------ */
+/* Photo storage                                                       */
+/* ------------------------------------------------------------------ */
+let lastStorageProblem = null;
+/**
+ * Problem preventing photos from being saved, as an untranslated message, or null.
+ * { probe: true } also makes a real write test (right before and after a photo).
+ */
+function storageError({ probe = false } = {}) {
+  const problem = storage.check(PHOTOS_DIR, settings.CONFIG_DIR, { probe });
+  if (problem !== lastStorageProblem) {
+    if (problem) console.error(`[storage] photos blocked: ${problem} (${PHOTOS_DIR})`);
+    else if (lastStorageProblem) console.log('[storage] photos folder OK again');
+    lastStorageProblem = problem;
+  }
+  return problem ? { key: `storage.${problem}` } : null;
+}
+/** What currently prevents taking a photo: storage first, then the camera. */
+const blockingError = () => storageError() || state.cameraError;
 
 /* ------------------------------------------------------------------ */
 /* Real-time events (Server-Sent Events)                               */
@@ -238,6 +264,13 @@ async function runShoot(delay, useLive, frame, { bw = false } = {}) {
     const short = (o) => String(o || '').trim().replace(/\s+/g, ' ') || '(nothing)';
     let out = await camera.capture(PHOTOS_DIR, baseName);
     let files = await listShot();
+    // No file because it could not be saved (disk unplugged, folder deleted...)?
+    // Then retrying would only fire the camera again for nothing.
+    const checkSaved = () => {
+      const problem = !files.length && storageError({ probe: true });
+      if (problem) throw fail(problem, 'storage');
+    };
+    checkSaved();
     if (!files.length) {
       // Some cameras refuse to fire without focus: the driver decides whether to retry
       if (!camera.shouldRetryWithoutFile({ manual })) {
@@ -250,6 +283,7 @@ async function runShoot(delay, useLive, frame, { bw = false } = {}) {
       setPhase('capturing');
       out = await camera.capture(PHOTOS_DIR, baseName);
       files = await listShot();
+      checkSaved();
       if (!files.length) {
         console.warn(`[shoot] still no photo. Camera: ${short(out)}`);
         throw fail({ camera: 'focusFailed' }, 'no file');
@@ -341,14 +375,15 @@ let shuttingDown = false;
 async function pollCamera() {
   if (polling || shuttingDown || state.busy || live.running) return;
   polling = true;
-  const before = JSON.stringify([state.camera, state.cameraError]);
+  const before = JSON.stringify([state.camera, blockingError()]);
   try {
     await refreshCamera(probeRequested || Date.now() - lastProbe > CAMERA_PROBE_MS);
   } finally {
     polling = false;
   }
-  if (JSON.stringify([state.camera, state.cameraError]) !== before) {
-    broadcast({ type: 'camera', camera: state.camera, error: translate(state.cameraError) });
+  const error = blockingError();
+  if (JSON.stringify([state.camera, error]) !== before) {
+    broadcast({ type: 'camera', camera: state.camera, error: translate(error) });
   }
 }
 setInterval(pollCamera, CAMERA_POLL_MS);
@@ -401,11 +436,13 @@ app.get('/api/status', (req, res) => {
     probeRequested = true;
     setImmediate(pollCamera);
   }
-  res.json({ camera: state.camera, error: translate(state.cameraError), busy: state.busy, phase: state.phase, focusMode: state.focusMode });
+  res.json({ camera: state.camera, error: translate(blockingError()), busy: state.busy, phase: state.phase, focusMode: state.focusMode });
 });
 
 app.post('/api/shoot', async (req, res) => {
   if (state.busy) return res.status(409).json({ error: tr('shoot.busy') });
+  const storageProblem = storageError({ probe: true }); // real write test before every photo (disk unplugged?)
+  if (storageProblem) return res.status(503).json({ error: translate(storageProblem) });
   if (!state.camera || state.cameraError) return res.status(503).json({ error: translate(state.cameraError) || tr('status.noCamera') });
   state.busy = true; // reserved right away (reading the frame is asynchronous)
   // Everything is decided by the admin settings (/admin), not by the tablet
@@ -567,6 +604,7 @@ app.get('/api/events', (req, res) => {
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`Camera driver: ${camera.id} (${camera.label})`);
   console.log(`Flash & Furious ready on http://0.0.0.0:${PORT} — photos in ${PHOTOS_DIR}`);
+  storageError(); // logs a storage problem right away
   await refreshCamera();
   console.log(state.camera ? `Camera detected: ${state.camera.model} (${state.camera.port})` : `Camera: ${translate(state.cameraError)}`);
 });

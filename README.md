@@ -12,9 +12,44 @@ docker compose up -d --build
 On the tablet (same Wi-Fi network as the host): `http://<host-ip>:3000`.
 Use ⛶ to go full screen, or "Add to Home Screen".
 
-Photos are copied to `./photos/` (resized previews live in `./photos/.cache/`).
-They can **only be retrieved on the host** (`photos/` folder): the tablet has no download button,
+Photos are copied to `./photos/` by default (see [Photos folder](#photos-folder) to use another folder or an external disk).
+They can **only be retrieved on the host**: the tablet has no download button,
 and no image is kept in its browser cache (`Cache-Control: no-store` on every response).
+
+## Photos folder
+
+The photos folder on the host is set in a `.env` file next to `docker-compose.yml` (copy `.env.example`):
+
+| Variable | Default | Role |
+|---|---|---|
+| `PHOTOS_PATH` | `./photos` | Folder on the host: relative to the project or absolute, on the system disk or on an external disk |
+| `PHOTOS_CREATE` | `true` | Missing folder: `true` = created at start-up, `false` = `docker compose up` fails ("bind source path does not exist") |
+| `PHOTOS_EXTERNAL` | `false` | `true` = the folder must be on another disk than the project: if the external disk is not plugged in or not mounted, photos are blocked instead of silently filling the system disk |
+| `STORAGE_MIN_FREE_MB` | `200` | Photos are blocked (with an alert) when less free space than this is left on the disk |
+| `PUID` / `PGID` | `1000` | Owner of the folder and of the photos on the host |
+
+On every start, the container entrypoint (`docker/entrypoint.sh`) checks the folder. It is idempotent: it only changes what is not already right.
+
+- A folder that Docker has just created (empty, owned by root) is handed over to `PUID:PGID`; the `.cache/` and `originals/` subfolders are created if missing.
+- An existing folder is never modified: if `PUID:PGID` cannot write to it, a warning gives the command to fix it on the host (`sudo chown …`).
+- Blocking problems (folder not mounted from the host, external disk missing, read-only folder, disk almost full) are logged, shown on the tablet and in `/admin`, and photos are refused until they are fixed.
+- The server checks again before every photo with a real write test, so a disk unplugged or a folder deleted during an event is detected. If a photo could not be saved, the camera is not fired again for nothing: the storage problem is reported instead.
+
+```bash
+docker compose logs | grep storage   # what the entrypoint checked or changed
+```
+
+External disk example (ext4 recommended; exFAT/NTFS work but have no Unix owners):
+
+```bash
+# /etc/fstab: mount the disk at boot, without blocking the boot if it is missing
+UUID=<disk uuid>  /mnt/photos  ext4  defaults,nofail  0  2
+```
+```bash
+# .env
+PHOTOS_PATH=/mnt/photos/flash-and-furious
+PHOTOS_EXTERNAL=true
+```
 
 ## The three pages
 
@@ -162,7 +197,8 @@ The admin page adapts by itself: help texts provided by the driver, sections hid
 | `FRAME_TITLE` | Flash & Furious | Frame text on first start (then editable in `/admin`) |
 | `HOST_IP` | (auto) | Address shown in `/admin` for the tablet |
 | `TZ` | Europe/Paris | Time zone used to name files |
-| `PUID` / `PGID` | 1000 | Owner of the files created in `photos/` |
+| `PUID` / `PGID` | 1000 | Owner of the files created in the photos folder |
+| `PHOTOS_PATH`, `PHOTOS_CREATE`, `PHOTOS_EXTERNAL`, `STORAGE_MIN_FREE_MB` | see [Photos folder](#photos-folder) | Photos folder on the host |
 
 ## The camera stops responding ("PTP Timeout")
 
