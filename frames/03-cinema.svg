@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1000" width="1500" height="1000">
+  <title>Cinema</title>
+  <path fill="#111014" fill-rule="evenodd" d="M0 0H1500V1000H0Z M0 100V840H1500V100Z"/>
+  <g fill="#f5f0e6">
+    <rect x="30" y="34" width="44" height="32" rx="7"/>
+    <rect x="30" y="864" width="44" height="32" rx="7"/>
+    <rect x="110" y="34" width="44" height="32" rx="7"/>
+    <rect x="110" y="864" width="44" height="32" rx="7"/>
+    <rect x="190" y="34" width="44" height="32" rx="7"/>
+    <rect x="190" y="864" width="44" height="32" rx="7"/>
+    <rect x="270" y="34" width="44" height="32" rx="7"/>
+    <rect x="270" y="864" width="44" height="32" rx="7"/>
+    <rect x="350" y="34" width="44" height="32" rx="7"/>
+    <rect x="350" y="864" width="44" height="32" rx="7"/>
+    <rect x="430" y="34" width="44" height="32" rx="7"/>
+    <rect x="430" y="864" width="44" height="32" rx="7"/>
+    <rect x="510" y="34" width="44" height="32" rx="7"/>
+    <rect x="510" y="864" width="44" height="32" rx="7"/>
+    <rect x="590" y="34" width="44" height="32" rx="7"/>
+    <rect x="590" y="864" width="44" height="32" rx="7"/>
+    <rect x="670" y="34" width="44" height="32" rx="7"/>
+    <rect x="670" y="864" width="44" height="32" rx="7"/>
+    <rect x="750" y="34" width="44" height="32" rx="7"/>
+    <rect x="750" y="864" width="44" height="32" rx="7"/>
+    <rect x="830" y="34" width="44" height="32" rx="7"/>
+    <rect x="830" y="864" width="44" height="32" rx="7"/>
+    <rect x="910" y="34" width="44" height="32" rx="7"/>
+    <rect x="910" y="864" width="44" height="32" rx="7"/>
+    <rect x="990" y="34" width="44" height="32" rx="7"/>
+    <rect x="990" y="864" width="44" height="32" rx="7"/>
+    <rect x="1070" y="34" width="44" height="32" rx="7"/>
+    <rect x="1070" y="864" width="44" height="32" rx="7"/>
+    <rect x="1150" y="34" width="44" height="32" rx="7"/>
+    <rect x="1150" y="864" width="44" height="32" rx="7"/>
+    <rect x="1230" y="34" width="44" height="32" rx="7"/>
+    <rect x="1230" y="864" width="44" height="32" rx="7"/>
+    <rect x="1310" y="34" width="44" height="32" rx="7"/>
+    <rect x="1310" y="864" width="44" height="32" rx="7"/>
+    <rect x="1390" y="34" width="44" height="32" rx="7"/>
+    <rect x="1390" y="864" width="44" height="32" rx="7"/>
+    <rect x="1470" y="34" width="44" height="32" rx="7"/>
+    <rect x="1470" y="864" width="44" height="32" rx="7"/>
+  </g>
+  <text x="60" y="965" font-family="DejaVu Sans" font-weight="bold" font-size="40" fill="#ffc94a" letter-spacing="4" data-fit="820" data-char-width="0.62">{{title}}</text>
+  <text x="1440" y="965" text-anchor="end" font-family="DejaVu Sans" font-size="30" fill="#c9c2d6" letter-spacing="2">{{date}}</text>
+</svg>

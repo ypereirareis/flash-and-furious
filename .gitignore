@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Photos taken (never on GitHub): only the empty folder is kept
+photos/*
+!photos/.gitkeep
+
+# Local settings made in /admin
+config/*
+!config/.gitkeep
+
+# Misc
+.env
+*.log
+.DS_Store
+*.bak
