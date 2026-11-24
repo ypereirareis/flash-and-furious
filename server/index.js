@@ -134,6 +134,10 @@ async function listPhotos() {
     const st = await fsp.stat(path.join(PHOTOS_DIR, e.name));
     photos.push({ name: e.name, mtime: st.mtimeMs, size: st.size });
   }
+  // photos whose full-size version is still being computed are already shown
+  for (const [name, job] of processing) {
+    if (!photos.some((p) => p.name === name)) photos.push({ name, mtime: job.mtime, size: 0 });
+  }
   photos.sort((a, b) => b.mtime - a.mtime);
   return photos.map(toDto);
 }
@@ -145,15 +149,22 @@ function toDto(p) {
     date: new Date(p.mtime).toISOString(),
     thumb: `/media/thumb/${encodeURIComponent(p.name)}?v=${v}`,
     view: `/media/view/${encodeURIComponent(p.name)}?v=${v}`,
+    tv: `/media/tv/${encodeURIComponent(p.name)}?v=${v}`,
   };
 }
 
-const SIZES = { thumb: 480, view: 1920 };
+// thumb: gallery; view: tablet; tv: slideshow on a 4K screen
+const SIZES = { thumb: 480, view: 1920, tv: 3840 };
+const QUALITY = { thumb: 72, view: 85, tv: 85 };
 const pending = new Map();
 
 /** Generates (and caches) a resized copy, correctly oriented (EXIF). */
 async function resized(name, kind) {
-  const src = path.join(PHOTOS_DIR, name);
+  // photo still being processed at full size: its screen version stands in for it, except
+  // for the 4K version, made from the full-size photo once ready
+  const job = processing.get(name);
+  if (job && kind === 'tv') await job.done;
+  const src = processing.has(name) ? screenFile(name) : path.join(PHOTOS_DIR, name);
   const dst = path.join(CACHE_DIR, `${kind}_${name}`);
   const [s, d] = await Promise.all([fsp.stat(src), fsp.stat(dst).catch(() => null)]);
   if (d && d.mtimeMs >= s.mtimeMs) return dst;
@@ -165,7 +176,7 @@ async function resized(name, kind) {
       await sharp(src)
         .rotate()
         .resize({ width: SIZES[kind], height: SIZES[kind], fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: kind === 'thumb' ? 72 : 85, mozjpeg: true })
+        .jpeg({ quality: QUALITY[kind], mozjpeg: kind !== 'tv' }) // mozjpeg: slow at 4K
         .toFile(tmp);
       await fsp.rename(tmp, dst);
       chownSafe(dst);
@@ -303,10 +314,13 @@ async function runShoot(delay, useLive, frame, { bw = false } = {}) {
 
     if (!jpeg) throw fail({ key: files.length ? 'shoot.noJpeg' : 'shoot.noFiles' }, 'no jpeg');
     if (frame || bw) await processPhoto(frame, files, jpeg, { bw });
-    const st = await fsp.stat(path.join(PHOTOS_DIR, jpeg));
-    // Pre-generate the preview so the tablet shows it quickly
+    const job = processing.get(jpeg);
+    const mtime = job ? job.mtime : (await fsp.stat(path.join(PHOTOS_DIR, jpeg))).mtimeMs;
+    // Pre-generate the screen versions: the tablet one is awaited, the 4K one (TV)
+    // follows in the background (after the full-size photo if it is being processed)
     await resized(jpeg, 'view').catch(() => {});
-    const photo = toDto({ name: jpeg, mtime: st.mtimeMs, size: st.size });
+    resized(jpeg, 'tv').catch(() => {});
+    const photo = toDto({ name: jpeg, mtime });
     broadcast({ type: 'photo', photo });
     setPhase('idle');
   } catch (err) {
@@ -320,6 +334,20 @@ async function runShoot(delay, useLive, frame, { bw = false } = {}) {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Photo processing (frame, black & white)                             */
+/* ------------------------------------------------------------------ */
+// The guests only wait for the tablet version (1920 px, a fraction of a second); the
+// full-size photo, then its 4K version for the TV, are computed afterwards in a queue,
+// one photo at a time, so the next shot can start right away.
+// Photos waiting for their full-size version: name -> { mtime, done }
+const processing = new Map();
+let processingQueue = Promise.resolve();
+// tablet version of a photo being processed: directly its cached "view" copy
+const screenFile = (name) => path.join(CACHE_DIR, `view_${name}`);
+// job written to disk until the full-size photo exists: resumed after a restart or a power cut
+const jobFile = (name) => path.join(CACHE_DIR, `pending_${name}.json`);
+
 /**
  * Frame and/or black & white: the original files (JPEG, RAW; in colour, without frame)
  * move to photos/originals/ and the processed version takes the photo's name in photos/.
@@ -330,16 +358,80 @@ async function processPhoto(frame, files, jpeg, { bw = false } = {}) {
   const t = Date.now();
   for (const f of files) await fsp.rename(path.join(PHOTOS_DIR, f), path.join(ORIGINALS_DIR, f));
   const original = path.join(ORIGINALS_DIR, jpeg);
-  const target = path.join(PHOTOS_DIR, jpeg);
+  const job = { name: jpeg, frame, bw, mtime: Date.now() };
   try {
-    await frames.apply(frame, original, target, { bw });
-    console.log(`[frame] ${what} applied in ${Date.now() - t} ms`);
+    const tmp = `${screenFile(jpeg)}.tmp`;
+    await frames.apply(frame, original, tmp, { bw, maxSize: SIZES.view, quality: QUALITY.view });
+    await fsp.rename(tmp, screenFile(jpeg));
+    chownSafe(screenFile(jpeg));
+    await fsp.writeFile(jobFile(jpeg), JSON.stringify(job));
+    chownSafe(jobFile(jpeg));
+    console.log(`[frame] ${what}: screen version in ${Date.now() - t} ms, full size queued`);
   } catch (err) {
     console.error('[frame] failed:', err.message);
-    await fsp.copyFile(original, target); // the photo stays visible, as is
+    await fsp.rm(screenFile(jpeg), { force: true });
+    await fsp.copyFile(original, path.join(PHOTOS_DIR, jpeg)); // the photo stays visible, as is
+    chownSafe(path.join(PHOTOS_DIR, jpeg));
     broadcast({ type: 'error', message: tr('shoot.retouchFailed') });
+    return;
   }
+  queueFullSize(job);
+}
+
+function queueFullSize(job) {
+  const done = processingQueue
+    .then(() => fullSize(job))
+    .catch((err) => console.error(`[frame] ${job.name}:`, err.message));
+  processing.set(job.name, { mtime: job.mtime, done });
+  processingQueue = done;
+}
+
+/** Full-size version of a queued photo, written to photos/ once complete. */
+async function fullSize({ name, frame, bw, mtime }) {
+  const original = path.join(ORIGINALS_DIR, name);
+  const target = path.join(PHOTOS_DIR, name);
+  const tmp = path.join(PHOTOS_DIR, `.${name}.tmp`); // hidden: not listed while being written
+  const t = Date.now();
+  try {
+    await frames.apply(frame, original, tmp, { bw });
+    await fsp.rename(tmp, target);
+    console.log(`[frame] ${name}: full size in ${Date.now() - t} ms`);
+  } catch (err) {
+    console.error(`[frame] ${name}: full size failed:`, err.message);
+    await fsp.rm(tmp, { force: true });
+    await fsp.copyFile(original, target); // the photo stays, as is
+    // the screen versions show the frame: they are made again from the photo as is
+    await Promise.all(Object.keys(SIZES).map((k) => fsp.rm(path.join(CACHE_DIR, `${k}_${name}`), { force: true })));
+    broadcast({ type: 'error', message: tr('shoot.retouchFailed') });
+  } finally {
+    processing.delete(name);
+  }
+  // the photo keeps the time of the shot: gallery order, and the screen versions
+  // (made after it) stay valid in the cache
+  const when = new Date(mtime);
+  await fsp.utimes(target, when, when);
   chownSafe(target);
+  await fsp.rm(jobFile(name), { force: true });
+}
+
+/** Full-size versions left unfinished (restart, power cut): queued again. */
+async function resumeProcessing() {
+  let files = [];
+  try {
+    files = (await fsp.readdir(CACHE_DIR)).filter((f) => /^pending_.+\.json$/.test(f));
+  } catch (_) {
+    return;
+  }
+  for (const f of files) {
+    try {
+      const job = JSON.parse(await fsp.readFile(path.join(CACHE_DIR, f), 'utf8'));
+      if (!safeName(job.name) || `pending_${job.name}.json` !== f) throw new Error('invalid job');
+      console.log(`[frame] ${job.name}: full size resumed`);
+      queueFullSize(job);
+    } catch (err) {
+      console.error(`[frame] ${f}: cannot resume (${err.message})`);
+    }
+  }
 }
 
 /**
@@ -567,7 +659,7 @@ app.get('/api/photos', async (_req, res, next) => {
   }
 });
 
-app.get('/media/:kind(thumb|view)/:name', async (req, res) => {
+app.get('/media/:kind(thumb|view|tv)/:name', async (req, res) => {
   const name = safeName(req.params.name);
   if (!name) return res.sendStatus(400);
   try {
@@ -612,6 +704,7 @@ app.listen(PORT, '0.0.0.0', async () => {
   console.log(`Camera driver: ${camera.id} (${camera.label})`);
   console.log(`Flash & Furious ready on http://0.0.0.0:${PORT} — photos in ${PHOTOS_DIR}`);
   storageError(); // logs a storage problem right away
+  await resumeProcessing();
   await refreshCamera();
   console.log(state.camera ? `Camera detected: ${state.camera.model} (${state.camera.port})` : `Camera: ${translate(state.cameraError)}`);
 });
@@ -628,7 +721,11 @@ for (const sig of ['SIGTERM', 'SIGINT']) {
     try {
       await live.stop();
       await camera.exclusive(() => {}); // waits until the camera queue is empty
-      console.log('[server] camera released, exiting.');
+      console.log('[server] camera released.');
+      // photos left unfinished are resumed at the next start (pending_*.json)
+      if (processing.size) console.log(`[server] waiting for ${processing.size} photo(s) being processed…`);
+      await processingQueue;
+      console.log('[server] exiting.');
     } finally {
       clearTimeout(force);
       process.exit(0);

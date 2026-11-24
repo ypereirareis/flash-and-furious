@@ -98,10 +98,11 @@
       clearTimeout(timer);
       const item = pickNext();
       if (!item) { timer = setTimeout(next, 2000); return; }
-      await preload(item.photo.view);
+      const src = item.photo.tv || item.photo.view; // 4K version for the TV
+      await preload(src);
 
       const back = layers[1 - front];
-      back.querySelector('img').src = item.photo.view;
+      back.querySelector('img').src = src;
       back.querySelector('.bg').style.backgroundImage = `url("${item.photo.thumb}")`;
       // restart the zoom animation
       back.classList.remove('show');

@@ -72,13 +72,24 @@ function fitTexts(svg) {
   });
 }
 
-/** Renders a decoration SVG at the requested width (transparent PNG). */
+/**
+ * Uncompressed RGBA pixels, ready to be composited: encoding a full-size layer as PNG
+ * only to decode it again right away costs seconds on a Raspberry Pi.
+ */
+const toRaw = (img) => img.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+const rawLayer = ({ data, info }, pos = {}) => ({
+  input: data,
+  raw: { width: info.width, height: info.height, channels: info.channels },
+  ...pos,
+});
+
+/** Renders a decoration SVG at the requested width (raw RGBA). */
 async function renderDeco(file, width) {
   const svg = await fsp.readFile(file);
   const vb = String(svg).match(/viewBox="[\d.\s-]*?\s([\d.]+)\s+([\d.]+)"/);
   const svgWidth = vb ? Number(vb[1]) : 240;
   const density = Math.min(2400, Math.max(72, (72 * width) / svgWidth));
-  return sharp(svg, { density }).resize({ width }).png().toBuffer({ resolveWithObject: true });
+  return toRaw(sharp(svg, { density }).resize({ width }));
 }
 
 /**
@@ -90,24 +101,82 @@ async function decoLayers(deco, width, height) {
   const margin = Math.round(width * 0.012);
   const layers = [];
   if (deco.corner) {
-    const { data, info } = await renderDeco(deco.corner, Math.round(width * 0.26));
-    layers.push({ input: data, left: margin, top: Math.max(0, height - info.height - margin) });
+    const img = await renderDeco(deco.corner, Math.round(width * 0.26));
+    layers.push(rawLayer(img, { left: margin, top: Math.max(0, height - img.info.height - margin) }));
   }
   if (deco.top) {
-    const { data } = await renderDeco(deco.top, Math.round(width * 0.22));
-    layers.push({ input: data, left: margin, top: margin });
+    layers.push(rawLayer(await renderDeco(deco.top, Math.round(width * 0.22)), { left: margin, top: margin }));
   }
   return layers;
 }
 
 /**
- * Renders the frame as a transparent PNG of the requested size.
+ * Layers to composite over an image of this size: the frame, then the theme decorations.
  * @param {object} opts { title: replaces {{title}}, locale: for {{date}}, deco: theme decorations (see themes.decoFiles) }
  */
-async function render(frame, width, height, { title = '', locale, deco = null } = {}) {
+async function layers(frame, width, height, { title = '', locale, deco = null } = {}) {
   const base = await renderFrame(frame, width, height, title, today(locale));
-  const layers = await decoLayers(deco, width, height);
-  return layers.length ? sharp(base).composite(layers).png().toBuffer() : base;
+  return [...opaqueParts(base), ...(await decoLayers(deco, width, height))];
+}
+
+/**
+ * Splits a raw RGBA layer into rectangles, leaving out its fully transparent areas
+ * (the middle of a frame, where the photo shows): compositing them changes nothing, but
+ * kept in memory they weigh most of the layer (96 MB for a 24 Mpx photo).
+ * The image is cut into TILE × TILE squares; the non-empty ones, joined into horizontal
+ * runs, then runs with the same columns on consecutive rows, give the rectangles.
+ */
+const TILE = 128;
+function opaqueParts({ data, info }) {
+  const { width, height, channels } = info;
+  const cols = Math.ceil(width / TILE);
+  const rows = Math.ceil(height / TILE);
+  const used = new Uint8Array(cols * rows);
+  for (let y = 0; y < height; y++) {
+    const tileRow = Math.floor(y / TILE) * cols;
+    for (let x = 0; x < width; x++) {
+      if (data[(y * width + x) * channels + 3] === 0) continue;
+      used[tileRow + Math.floor(x / TILE)] = 1;
+      x = (Math.floor(x / TILE) + 1) * TILE - 1; // this tile is used: go to the next one
+    }
+  }
+  // horizontal runs of used tiles, per row of tiles: "c0-c1" -> rectangle being extended
+  const rects = [];
+  let open = new Map();
+  for (let r = 0; r < rows; r++) {
+    const next = new Map();
+    for (let c = 0; c < cols; c++) {
+      if (!used[r * cols + c]) continue;
+      const c0 = c;
+      while (c + 1 < cols && used[r * cols + c + 1]) c++;
+      const key = `${c0}-${c}`;
+      const rect = open.get(key) || { c0, c1: c, r0: r, r1: r };
+      rect.r1 = r;
+      if (!open.has(key)) rects.push(rect);
+      next.set(key, rect);
+    }
+    open = next;
+  }
+  return rects.map(({ c0, c1, r0, r1 }) => {
+    const left = c0 * TILE;
+    const top = r0 * TILE;
+    const w = Math.min(width, (c1 + 1) * TILE) - left;
+    const h = Math.min(height, (r1 + 1) * TILE) - top;
+    const part = Buffer.allocUnsafe(w * h * channels);
+    for (let y = 0; y < h; y++) {
+      const from = ((top + y) * width + left) * channels;
+      data.copy(part, y * w * channels, from, from + w * channels);
+    }
+    return rawLayer({ data: part, info: { width: w, height: h, channels } }, { left, top });
+  });
+}
+
+/** Renders the frame and its decorations as a transparent PNG of the requested size. */
+async function render(frame, width, height, opts) {
+  return sharp({ create: { width, height, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite(await layers(frame, width, height, opts))
+    .png()
+    .toBuffer();
 }
 
 async function renderFrame(frame, width, height, title, date) {
@@ -121,9 +190,9 @@ async function renderFrame(frame, width, height, title, date) {
     const vb = svg.match(/viewBox="[\d.\s-]*?\s([\d.]+)\s+([\d.]+)"/);
     const svgWidth = vb ? Number(vb[1]) : 1500;
     const density = Math.min(2400, Math.max(72, (72 * width) / svgWidth));
-    return sharp(Buffer.from(svg), { density }).resize(width, height, { fit: 'fill' }).png().toBuffer();
+    return toRaw(sharp(Buffer.from(svg), { density }).resize(width, height, { fit: 'fill' }));
   }
-  return sharp(frame.file).resize(width, height, { fit: 'fill' }).png().toBuffer();
+  return toRaw(sharp(frame.file).resize(width, height, { fit: 'fill' }));
 }
 
 /** Lightweight preview (for the tablet and admin), cached in memory. */
@@ -136,19 +205,42 @@ async function preview(frame, opts = {}) {
 }
 
 /**
+ * Frame and decoration layers for one image size. They are the same for every shot of an
+ * event (same frame, title, date and camera resolution), so the last two sets are kept:
+ * the screen size (fast version) and the full size. Only the non-transparent parts are
+ * kept (see opaqueParts): a few tens of MB for a 24 Mpx camera, depending on the frame.
+ */
+const overlayCache = new Map();
+async function overlay(frame, width, height, opts) {
+  const key = [frame.id, frame.mtime, width, height, today(opts.locale), opts.title, opts.deco ? opts.deco.id : ''].join(':');
+  if (!overlayCache.has(key)) {
+    while (overlayCache.size >= 2) overlayCache.delete(overlayCache.keys().next().value); // free before rendering
+    overlayCache.set(key, layers(frame, width, height, opts).catch((e) => { overlayCache.delete(key); throw e; }));
+  }
+  return overlayCache.get(key);
+}
+
+/**
  * Processes the photo `src` and writes the result to `dst` (JPEG):
  *  - black & white if `bw` (the photo only: frame and decorations keep their colours);
  *  - frame (optional) with its text and the theme decorations: `frame` carries { title, locale, deco }.
+ * `maxSize`: fast version for the screens, at most this many pixels on its longest side
+ * (the full-size photo otherwise). `quality`: JPEG quality.
  */
-async function apply(frame, src, dst, { bw = false } = {}) {
+async function apply(frame, src, dst, { bw = false, maxSize = null, quality = 92 } = {}) {
   // apply the EXIF orientation first, to work on the image "the right way up"
   let img = sharp(src).rotate();
-  if (bw) img = img.modulate({ saturation: 0 }).linear(1.08, -8); // B&W, slightly more contrast
+  if (maxSize) img = img.resize({ width: maxSize, height: maxSize, fit: 'inside', withoutEnlargement: true });
+  // B&W, slightly more contrast. greyscale() gives the same result as modulate({ saturation: 0 })
+  // (within 2/255) about 7x faster; frame and decorations are composited in colour over it.
+  if (bw) img = img.greyscale().linear(1.08, -8);
   const { data, info } = await img.raw().toBuffer({ resolveWithObject: true });
-  const layers = frame ? [{ input: await render(frame, info.width, info.height, frame) }] : [];
+  const over = frame ? await overlay(frame, info.width, info.height, frame) : [];
+  // plain libjpeg rather than mozjpeg: about twice as fast to encode at full size,
+  // for files around a third larger at the same quality (a few hundred KB more)
   await sharp(data, { raw: { width: info.width, height: info.height, channels: info.channels } })
-    .composite(layers)
-    .jpeg({ quality: 92, mozjpeg: true })
+    .composite(over)
+    .jpeg({ quality })
     .toFile(dst);
 }
 

@@ -57,7 +57,7 @@ PHOTOS_EXTERNAL=true
 |---|---|---|
 | `http://<host-ip>:3000/` | guests (tablet) | preview, shutter, gallery: no settings (`/#gallery` opens the gallery directly) |
 | `http://<host-ip>:3000/admin` | the organiser | language, live view, mirror, theme, frame, AF/MF focus |
-| `http://<host-ip>:3000/slideshow` | a screen / TV | photos in a loop, 3 s each, crossfade and slow zoom; new photos are shown first |
+| `http://<host-ip>:3000/slideshow` | a screen / TV | photos in a loop, 3 s each, crossfade and slow zoom; new photos are shown first (4K version, 3840 px) |
 
 `/admin` settings are saved in `config/settings.json` (kept across restarts) and applied immediately
 on every tablet. The `/admin` page is not password-protected: only use the app on a trusted local network,
@@ -109,9 +109,16 @@ To add or change a theme: `server/themes.js` (one entry per theme) and its name 
 The applied frame is chosen in `/admin`, among the frames of the `frames/` folder (Polaroid, Party, Cinema, Elegant included).
 The chosen frame is shown on top of live view so people can place themselves inside it.
 
-After the shot, the frame is applied to the photo (about 2 s):
-- `photos/<name>.jpg`: framed photo (shown in the gallery);
+After the shot, the frame (and black & white, if chosen) is applied in two steps:
+1. a 1920 px version for the tablet, in a fraction of a second: the photo shows up and the next shot can start;
+2. the full-size photo, then its 4K version for the slideshow, in the background, one photo at a time.
+
+The result:
+- `photos/<name>.jpg`: framed photo at full size (shown in the gallery), dated from the shot;
 - `photos/originals/<name>.jpg` (and the RAW file, if any): untouched original.
+
+A photo still waiting for its full-size version is noted in `photos/.cache/pending_<name>.json`: after a restart
+or a power cut, its processing resumes on start-up. A clean stop (`docker compose stop`) waits for it.
 
 Adding a frame: drop a transparent PNG or a 3:2 SVG into `frames/` (see `frames/README.txt`). No restart needed.
 In SVGs, `{{title}}` is replaced with the text typed in `/admin` (the same for every frame) and `{{date}}` with today's date.
@@ -258,7 +265,7 @@ rebuilt when `package.json` or `package-lock.json` change.
 - `GET /api/photos`: photo list (most recent first)
 - `GET /api/live.mjpeg`: live stream (MJPEG), only available during a countdown in Live mode
 - `GET /api/events`: SSE stream (countdown, phases, new photo, errors)
-- `/media/thumb/:name`, `/media/view/:name`: thumbnail, preview (no access to originals: they are retrieved on the host)
+- `/media/thumb/:name`, `/media/view/:name`, `/media/tv/:name`: thumbnail, preview (1920 px), slideshow (3840 px); no access to originals: they are retrieved on the host
 - `/locales/:lang.json`: UI texts
 
 ## License
