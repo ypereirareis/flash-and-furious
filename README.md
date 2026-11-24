@@ -223,3 +223,7 @@ rebuilt when `package.json` or `package-lock.json` change.
 - `GET /api/events`: SSE stream (countdown, phases, new photo, errors)
 - `/media/thumb/:name`, `/media/view/:name`: thumbnail, preview (no access to originals: they are retrieved on the host)
 - `/locales/:lang.json`: UI texts
+
+## License
+
+[MIT](LICENSE) © Yannick Pereira-Reis
