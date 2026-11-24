@@ -9,7 +9,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-NODE_IMAGE=node:22-bookworm-slim
+NODE_IMAGE=node:22-alpine3.24
 npm_docker() {
   docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e NPM_CONFIG_UPDATE_NOTIFIER=false \
     -v "$PWD:/w" -w /w "$NODE_IMAGE" npm "$@"
