@@ -43,12 +43,13 @@ services:
       - PHOTOS_HOST_PATH=${PHOTOS_PATH:-./photos}
       - PHOTOS_EXTERNAL=${PHOTOS_EXTERNAL:-false}
       - STORAGE_MIN_FREE_MB=${STORAGE_MIN_FREE_MB:-200}
-      - DEFAULT_DELAY=${DEFAULT_DELAY:-5}
+      - DEFAULT_DELAY=${DEFAULT_DELAY:-3}
       # Messages before the countdown: translated defaults; set them here to override
       # (an empty value hides the message)
       # - PRE_MESSAGE=Don't move until the flash!!
-      # - LOOK_MESSAGE=Look at the camera
-      - PRE_MESSAGE_SECONDS=${PRE_MESSAGE_SECONDS:-3}
+      # - LOOK_MESSAGE=Look at the lens, not the screen!
+      - LOOK_MESSAGE_SECONDS=${LOOK_MESSAGE_SECONDS:-2}
+      - PRE_MESSAGE_SECONDS=${PRE_MESSAGE_SECONDS:-2}
       - FOCUS_BEFORE_END=${FOCUS_BEFORE_END:-2}
       - LIVE_QUALITY=${LIVE_QUALITY:-70}
       - LIVE_MAX_SECONDS=${LIVE_MAX_SECONDS:-10}

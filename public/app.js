@@ -165,19 +165,21 @@ function showOverlay(num, text) {
   }
   els.overlayText.textContent = text || '';
 }
-function showWarning(text, hint) {
+// Messages before the countdown: "look" (camera icon, look at the lens) or "warning" (wait for the flash)
+function showWarning(text, { look = false } = {}) {
   showOverlay('', '');
   els.overlay.classList.add('warning');
-  els.overlayText.textContent = text || '';
-  els.overlayText.hidden = !text;
-  els.overlayHint.innerHTML = hint
+  els.overlay.classList.toggle('look', look);
+  els.overlayText.hidden = look;
+  els.overlayText.textContent = look ? '' : text || '';
+  els.overlayHint.innerHTML = look
     ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><span></span>`
     : '';
-  if (hint) els.overlayHint.querySelector('span').textContent = hint;
-  els.overlayHint.hidden = !hint;
+  if (look) els.overlayHint.querySelector('span').textContent = text || '';
+  els.overlayHint.hidden = !look;
 }
 function clearWarning() {
-  els.overlay.classList.remove('warning');
+  els.overlay.classList.remove('warning', 'look');
   els.overlayText.hidden = false;
   els.overlayHint.hidden = true;
 }
@@ -190,7 +192,6 @@ function hideOverlay() {
 function setLastThumb(photo) {
   els.lastThumb.hidden = false;
   els.lastThumb.querySelector('img').src = photo.thumb;
-  els.lastThumb.onclick = () => openViewer(photos.findIndex((p) => p.name === photo.name));
 }
 
 // When live view is off, the last photo is shown in large
@@ -199,7 +200,6 @@ function showLastFull() {
   els.review.src = photos[0].view;
   els.review.hidden = false;
 }
-els.review.addEventListener('click', () => openViewer(0));
 
 /* ---------- Server events ---------- */
 function startShooting() {
@@ -225,9 +225,9 @@ function connectEvents() {
         showOverlay(ev.remaining, t('booth.smile'));
         break;
       case 'phase':
-        if (ev.phase === 'warning') {
+        if (ev.phase === 'look' || ev.phase === 'warning') {
           startShooting();
-          showWarning(ev.message, ev.hint);
+          showWarning(ev.message, { look: ev.phase === 'look' });
         } else if (ev.phase === 'preparing') {
           startShooting();
           showOverlay('', t('booth.preparingLive'));

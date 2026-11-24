@@ -86,7 +86,7 @@
   },
   "shoot": {
     "preMessage": "Ne bougez pas avant le flash !!",
-    "lookMessage": "Regardez l'appareil photo",
+    "lookMessage": "Regardez l'objectif, pas l'écran !",
     "busy": "Une photo est déjà en cours.",
     "error": "Erreur pendant la prise de vue.",
     "noJpeg": "Photo enregistrée, mais sans JPEG (appareil réglé en RAW seul) : pas d'aperçu possible.",
