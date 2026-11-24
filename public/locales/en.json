@@ -86,7 +86,7 @@
   },
   "shoot": {
     "preMessage": "Don't move until the flash!!",
-    "lookMessage": "Look at the camera",
+    "lookMessage": "Look at the lens, not the screen!",
     "busy": "A photo is already in progress.",
     "error": "Error while taking the photo.",
     "noJpeg": "Photo saved, but without a JPEG (camera set to RAW only): no preview possible.",

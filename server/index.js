@@ -19,14 +19,15 @@ const PORT = Number(process.env.PORT || 3000);
 const PHOTOS_DIR = path.resolve(process.env.PHOTOS_DIR || path.join(__dirname, '..', 'photos'));
 const CACHE_DIR = path.join(PHOTOS_DIR, '.cache');
 const ORIGINALS_DIR = path.join(PHOTOS_DIR, 'originals');
-const DEFAULT_DELAY = clampInt(process.env.DEFAULT_DELAY, 0, 30, 5);
+const DEFAULT_DELAY = clampInt(process.env.DEFAULT_DELAY, 0, 30, 3);
 // How many seconds before the end of the countdown focusing starts
 const FOCUS_BEFORE_END = clampInt(process.env.FOCUS_BEFORE_END, 0, 10, 2);
 // Message shown before the countdown, with a smaller reminder below it.
 // Unset = translated default text; empty = nothing.
 const PRE_MESSAGE = process.env.PRE_MESSAGE;
 const LOOK_MESSAGE = process.env.LOOK_MESSAGE;
-const PRE_MESSAGE_SECONDS = clampInt(process.env.PRE_MESSAGE_SECONDS, 0, 10, 3);
+const PRE_MESSAGE_SECONDS = clampInt(process.env.PRE_MESSAGE_SECONDS, 0, 10, 2);
+const LOOK_MESSAGE_SECONDS = clampInt(process.env.LOOK_MESSAGE_SECONDS, 0, 10, 2);
 const PUID = process.env.PUID ? Number(process.env.PUID) : null;
 const PGID = process.env.PGID ? Number(process.env.PGID) : null;
 const IMAGE_RE = /\.(jpe?g)$/i;
@@ -244,10 +245,16 @@ async function runShoot(delay, useLive, frame, { bw = false } = {}) {
       live.start();
       await live.waitFirstFrame(5000);
     }
+    // Two messages, one after the other, before the countdown:
+    // "look at the lens, not the screen", then "don't move until the flash"
+    const look = LOOK_MESSAGE ?? tr('shoot.lookMessage');
+    if (look && LOOK_MESSAGE_SECONDS > 0) {
+      setPhase('look', { message: look });
+      await sleep(LOOK_MESSAGE_SECONDS * 1000);
+    }
     const message = PRE_MESSAGE ?? tr('shoot.preMessage');
-    const hint = LOOK_MESSAGE ?? tr('shoot.lookMessage');
-    if ((message || hint) && PRE_MESSAGE_SECONDS > 0) {
-      setPhase('warning', { message, hint });
+    if (message && PRE_MESSAGE_SECONDS > 0) {
+      setPhase('warning', { message });
       await sleep(PRE_MESSAGE_SECONDS * 1000);
     }
     for (let s = delay; s > 0; s--) {

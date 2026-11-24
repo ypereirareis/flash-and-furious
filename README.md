@@ -131,7 +131,7 @@ In auto, if the camera does not fire (could not focus), the server refocuses and
 
 ## How a photo is taken
 
-1. "Don't move until the flash!!" message with a "Look at the camera" reminder for 3 s (`PRE_MESSAGE`, `LOOK_MESSAGE`, `PRE_MESSAGE_SECONDS`), then a 5 s countdown (fixed, only adjustable with `DEFAULT_DELAY`).
+1. Live view starts, then "Look at the lens, not the screen!" for 2 s (`LOOK_MESSAGE`, `LOOK_MESSAGE_SECONDS`), then "Don't move until the flash!!" for 2 s (`PRE_MESSAGE`, `PRE_MESSAGE_SECONDS`), then a 3 s countdown (`DEFAULT_DELAY`).
 2. `FOCUS_BEFORE_END` seconds before the end (2 s by default), live view stops, then a one-off focus (`autofocusdrive`, same as a half-press).
 3. Capture, then the file is copied to the host (`--capture-image-and-download --keep`). The photo is shown in large; live view does not resume.
 
@@ -186,10 +186,11 @@ The admin page adapts by itself: help texts provided by the driver, sections hid
 | Variable | Default | Role |
 |---|---|---|
 | `DEFAULT_LANG` | fr (`en` without docker-compose) | Default UI language, then changeable in `/admin` |
-| `DEFAULT_DELAY` | 5 | Countdown duration (s) |
-| `PRE_MESSAGE` | translated text | Message shown before the countdown (empty = none) |
-| `LOOK_MESSAGE` | translated text | Small reminder shown below the message (empty = none) |
-| `PRE_MESSAGE_SECONDS` | 3 | How long the message is shown (s) |
+| `DEFAULT_DELAY` | 3 | Countdown duration (s) |
+| `LOOK_MESSAGE` | translated text | First message: look at the lens, not the screen (empty = none) |
+| `LOOK_MESSAGE_SECONDS` | 2 | How long it is shown (s) |
+| `PRE_MESSAGE` | translated text | Second message, right before the countdown: don't move until the flash (empty = none) |
+| `PRE_MESSAGE_SECONDS` | 2 | How long it is shown (s) |
 | `FOCUS_BEFORE_END` | 2 | When focusing starts before the end of the countdown (s) |
 | `LIVE_QUALITY` | 70 | JPEG quality of the live stream (lower = lighter) |
 | `LIVE_MAX_SECONDS` | 10 | Maximum live view duration (s) |
