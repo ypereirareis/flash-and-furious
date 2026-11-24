@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 190">
+  <defs>
+    <radialGradient id="fl" cx=".5" cy=".6" r=".5"><stop offset="0" stop-color="#fff6b0"/><stop offset=".6" stop-color="#ffb02e"/><stop offset="1" stop-color="#ff6a00"/></radialGradient>
+    <radialGradient id="glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffd84a" stop-opacity=".6"/><stop offset="1" stop-color="#ffd84a" stop-opacity="0"/></radialGradient>
+    <pattern id="st" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="8" height="8" fill="#ffffff"/><rect width="4" height="8" fill="#ff6fb5"/></pattern>
+  </defs>
+  <ellipse cx="100" cy="36" rx="60" ry="30" fill="url(#glow)"/>
+  <!-- plate -->
+  <ellipse cx="100" cy="178" rx="88" ry="9" fill="#ffffff"/>
+  <!-- bottom tier -->
+  <rect x="26" y="112" width="148" height="62" rx="10" fill="#ff9cc4"/>
+  <path d="M26 114 H174 V120 q-5 14 -10 0 q-5 8 -10 0 q-5 14 -10 0 q-5 8 -10 0 q-5 14 -10 0 q-5 8 -10 0 q-5 14 -10 0 q-5 8 -10 0 q-5 14 -10 0 q-5 8 -10 0 q-5 14 -10 0 q-5 8 -10 0 q-5 14 -10 0 q-5 8 -10 0 L26 120 Z" fill="#fff3f8"/>
+  <g>
+    <rect x="44" y="146" width="10" height="4" rx="2" fill="#4cc9f0" transform="rotate(30 49 148)"/>
+    <rect x="70" y="156" width="10" height="4" rx="2" fill="#ffd23f" transform="rotate(-20 75 158)"/>
+    <rect x="98" y="144" width="10" height="4" rx="2" fill="#7b2ff7" transform="rotate(60 103 146)"/>
+    <rect x="124" y="158" width="10" height="4" rx="2" fill="#2ee6a6" transform="rotate(-40 129 160)"/>
+    <rect x="150" y="146" width="10" height="4" rx="2" fill="#ffd23f" transform="rotate(15 155 148)"/>
+  </g>
+  <!-- top tier -->
+  <rect x="52" y="74" width="96" height="44" rx="9" fill="#8fd3ff"/>
+  <path d="M52 76 H148 V82 q-5 14 -10 0 q-5 8 -10 0 q-5 14 -10 0 q-5 8 -10 0 q-5 14 -10 0 q-5 8 -10 0 q-5 14 -10 0 q-5 8 -10 0 L52 82 Z" fill="#ffffff"/>
+  <g fill="#ff6fb5"><circle cx="66" cy="104" r="3"/><circle cx="86" cy="108" r="3"/><circle cx="106" cy="102" r="3"/><circle cx="126" cy="108" r="3"/></g>
+  <!-- candles -->
+  <g>
+    <rect x="72" y="42" width="9" height="34" rx="2" fill="url(#st)"/>
+    <rect x="96" y="36" width="9" height="40" rx="2" fill="url(#st)"/>
+    <rect x="120" y="42" width="9" height="34" rx="2" fill="url(#st)"/>
+    <path d="M76.5 40 c-7 -8 -2 -16 0 -22 c2 6 7 14 0 22 z" fill="url(#fl)"/>
+    <path d="M100.5 34 c-7 -8 -2 -16 0 -22 c2 6 7 14 0 22 z" fill="url(#fl)"/>
+    <path d="M124.5 40 c-7 -8 -2 -16 0 -22 c2 6 7 14 0 22 z" fill="url(#fl)"/>
+  </g>
+  <!-- party hat -->
+  <g transform="translate(196 118) rotate(14)">
+    <path d="M-22 52 L0 -10 L22 52 Z" fill="#7b2ff7"/>
+    <path d="M-15 32 L15 32 M-8 12 L8 12" stroke="#ffd23f" stroke-width="5"/>
+    <circle cy="-12" r="8" fill="#ff6fb5"/>
+  </g>
+</svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1000" width="1500" height="1000">
+  <title>Polaroid</title>
+  <path fill="#fffdf8" fill-rule="evenodd" d="M0 0H1500V1000H0Z M45 45V830H1455V45Z"/>
+  <text x="750" y="910" text-anchor="middle" font-family="DejaVu Sans" font-weight="bold" font-size="58" fill="#2a1450" data-fit="1350" data-char-width="0.56">{{title}}</text>
+  <text x="750" y="964" text-anchor="middle" font-family="DejaVu Sans" font-size="32" fill="#8a7fa8">{{date}}</text>
+</svg>

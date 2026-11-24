@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180">
+  <defs>
+    <linearGradient id="t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2fa15f"/><stop offset="1" stop-color="#16613a"/></linearGradient>
+    <symbol id="star" viewBox="-10 -10 20 20"><path d="M0 -10 L2.9 -4 L9.5 -3.1 L4.7 1.5 L5.9 8.1 L0 5 L-5.9 8.1 L-4.7 1.5 L-9.5 -3.1 L-2.9 -4 Z" fill="#ffd166"/></symbol>
+  </defs>
+  <!-- big fir tree -->
+  <rect x="68" y="146" width="16" height="20" fill="#7a4a22"/>
+  <polygon points="76,26 46,74 106,74" fill="url(#t)"/>
+  <polygon points="76,50 34,110 118,110" fill="url(#t)"/>
+  <polygon points="76,80 22,150 130,150" fill="url(#t)"/>
+  <path d="M50 70 q26 14 54 -2 M40 104 q36 18 72 -4 M30 144 q46 18 94 -6" fill="none" stroke="#ffd166" stroke-width="3" stroke-linecap="round"/>
+  <g><circle cx="62" cy="88" r="5" fill="#ff4d5e"/><circle cx="92" cy="96" r="5" fill="#4cc9f0"/><circle cx="56" cy="128" r="5.5" fill="#ffd166"/>
+     <circle cx="98" cy="134" r="5.5" fill="#ff4d5e"/><circle cx="78" cy="60" r="4.5" fill="#ffd166"/><circle cx="76" cy="118" r="5" fill="#ff7ac6"/></g>
+  <use href="#star" x="62" y="10" width="28" height="28"/>
+  <!-- small fir tree -->
+  <rect x="190" y="152" width="10" height="14" fill="#7a4a22"/>
+  <polygon points="195,80 172,118 218,118" fill="url(#t)"/>
+  <polygon points="195,104 164,154 226,154" fill="url(#t)"/>
+  <circle cx="186" cy="132" r="4" fill="#ffd166"/><circle cx="206" cy="142" r="4" fill="#ff4d5e"/>
+  <use href="#star" x="185" y="68" width="20" height="20"/>
+  <!-- gift -->
+  <rect x="128" y="138" width="40" height="30" rx="3" fill="#ff4d5e"/>
+  <rect x="144" y="138" width="8" height="30" fill="#ffd166"/><rect x="128" y="148" width="40" height="7" fill="#ffd166"/>
+  <path d="M148 138 q-14 -14 -16 -2 q2 6 16 2 q14 4 16 -2 q-2 -12 -16 2 z" fill="#ffd166"/>
+  <!-- snow -->
+  <ellipse cx="120" cy="170" rx="116" ry="10" fill="#f4f8ff"/><ellipse cx="80" cy="166" rx="56" ry="8" fill="#ffffff"/>
+</svg>
