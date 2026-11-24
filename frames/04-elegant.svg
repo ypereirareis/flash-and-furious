@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1000" width="1500" height="1000">
+  <title>Elegant</title>
+  <path fill="#fbf6ec" fill-rule="evenodd" d="M0 0H1500V1000H0Z M40 40V960H1460V40Z"/>
+  <rect x="60" y="60" width="1380" height="880" fill="none" stroke="#c9a24a" stroke-width="5"/>
+  <rect x="74" y="74" width="1352" height="852" fill="none" stroke="#c9a24a" stroke-width="1.5"/>
+  <g fill="#c9a24a"><path d="M66 52L80 66L66 80L52 66Z"/><path d="M1434 52L1448 66L1434 80L1420 66Z"/><path d="M66 920L80 934L66 948L52 934Z"/><path d="M1434 920L1448 934L1434 948L1420 934Z"/></g>
+  <rect x="340" y="842" width="820" height="110" fill="#fbf6ec" stroke="#c9a24a" stroke-width="3"/>
+  <text x="750" y="895" text-anchor="middle" font-family="DejaVu Serif" font-style="italic" font-size="46" fill="#6b5320" data-fit="770" data-char-width="0.53">{{title}}</text>
+  <text x="750" y="933" text-anchor="middle" font-family="DejaVu Serif" font-size="24" fill="#a08550" letter-spacing="3">{{date}}</text>
+</svg>

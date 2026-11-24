@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 130">
+  <defs>
+    <symbol id="h" viewBox="-12 -11 24 22"><path d="M0 10 C-14 0 -12 -10 -6 -10 C-3 -10 -1 -8 0 -5 C1 -8 3 -10 6 -10 C12 -10 14 0 0 10 Z"/></symbol>
+    <symbol id="fl" viewBox="-10 -10 20 20">
+      <g fill="#fbe3e8"><circle cx="0" cy="-5" r="5"/><circle cx="4.8" cy="-1.5" r="5"/><circle cx="3" cy="4" r="5"/><circle cx="-3" cy="4" r="5"/><circle cx="-4.8" cy="-1.5" r="5"/></g>
+      <circle r="2.6" fill="#e6b85c"/>
+    </symbol>
+  </defs>
+  <!-- foliage garland -->
+  <path d="M0 18 Q60 70 130 30 T220 22" fill="none" stroke="#7e9e76" stroke-width="2.5"/>
+  <g fill="#9dbb94">
+    <ellipse cx="22" cy="32" rx="9" ry="4" transform="rotate(35 22 32)"/><ellipse cx="46" cy="46" rx="9" ry="4" transform="rotate(-20 46 46)"/>
+    <ellipse cx="76" cy="50" rx="9" ry="4" transform="rotate(25 76 50)"/><ellipse cx="104" cy="42" rx="9" ry="4" transform="rotate(-35 104 42)"/>
+    <ellipse cx="150" cy="24" rx="9" ry="4" transform="rotate(20 150 24)"/><ellipse cx="184" cy="26" rx="9" ry="4" transform="rotate(-25 184 26)"/>
+  </g>
+  <use href="#fl" x="26" y="22" width="22" height="22"/><use href="#fl" x="60" y="40" width="28" height="28"/>
+  <use href="#fl" x="112" y="24" width="22" height="22"/><use href="#fl" x="160" y="12" width="26" height="26"/>
+  <!-- hanging hearts -->
+  <g stroke="#c9a14a" stroke-width="1.2"><path d="M74 66 V92 M140 32 V70 M196 24 V52"/></g>
+  <use href="#h" x="64" y="90" width="22" height="20" fill="#e98aa0"/>
+  <use href="#h" x="128" y="68" width="26" height="24" fill="#c9a14a"/>
+  <use href="#h" x="187" y="50" width="18" height="16" fill="#f2b8c6"/>
+</svg>

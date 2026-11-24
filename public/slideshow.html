@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
+  <title>Flash &amp; Furious · Slideshow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" />
+  <style>
+    :root { --sun: #ffc94a; --coral: #ff5d73; --text: #fff8f0; --hold: 3000ms; --fade: 1200ms; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0716; color: var(--text);
+      font-family: "Fredoka", system-ui, sans-serif; cursor: none; user-select: none; }
+
+    .slide { position: fixed; inset: 0; opacity: 0; transition: opacity var(--fade) ease-in-out; }
+    .slide.show { opacity: 1; }
+    /* background: the same photo, blurred, to fill the screen without black bars */
+    .slide .bg { position: absolute; inset: -60px; background-size: cover; background-position: center;
+      filter: blur(40px) brightness(.45) saturate(1.3); transform: scale(1.1); }
+    /* photo: slow zoom (Ken Burns effect) while it is shown */
+    .slide .ph { position: absolute; inset: 4vmin; display: flex; align-items: center; justify-content: center; }
+    .slide img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 1.4vmin;
+      box-shadow: 0 3vmin 8vmin rgba(0, 0, 0, .6); transform: scale(1.0) translate(0, 0); }
+    .slide.show img { animation: kb calc(var(--hold) + var(--fade) * 2) linear forwards; }
+    .slide.alt.show img { animation-name: kb2; }
+    @keyframes kb { from { transform: scale(1.0) translate(-0.6%, 0.4%); } to { transform: scale(1.07) translate(0.6%, -0.4%); } }
+    @keyframes kb2 { from { transform: scale(1.07) translate(0.6%, 0.4%); } to { transform: scale(1.0) translate(-0.6%, -0.4%); } }
+
+    .badge { position: fixed; top: 4vmin; left: 50%; transform: translate(-50%, -150%); z-index: 5; padding: 1.4vmin 3.4vmin;
+      border-radius: 999px; background: var(--sun); color: #2a1450; border: .5vmin solid #fff; font-size: 3.6vmin; font-weight: 700;
+      box-shadow: 0 1.5vmin 4vmin rgba(0,0,0,.5); transition: transform .6s cubic-bezier(.2, 1.4, .4, 1); white-space: nowrap; }
+    .badge.on { transform: translate(-50%, 0); }
+
+    .counter { position: fixed; right: 3vmin; bottom: 2.5vmin; z-index: 5; font-size: 2.2vmin; color: rgba(255,255,255,.65); }
+    .progress { position: fixed; left: 0; bottom: 0; height: .6vmin; z-index: 5; width: 0;
+      background: linear-gradient(90deg, var(--coral), var(--sun)); }
+    .progress.run { width: 100%; transition: width var(--hold) linear; }
+
+    .empty { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2vmin;
+      text-align: center; font-size: 5vmin; font-weight: 600; }
+    .empty small { font-size: 2.6vmin; color: rgba(255,255,255,.6); font-weight: 500; }
+    [hidden] { display: none !important; }
+    img, .bg { -webkit-touch-callout: none; -webkit-user-drag: none; user-select: none; }
+  </style>
+</head>
+<body>
+  <div id="a" class="slide"><div class="bg"></div><div class="ph"><img alt="" /></div></div>
+  <div id="b" class="slide alt"><div class="bg"></div><div class="ph"><img alt="" /></div></div>
+  <div id="badge" class="badge" data-i18n="slideshow.newPhoto">New photo!</div>
+  <div id="progress" class="progress"></div>
+  <div id="counter" class="counter"></div>
+  <div id="empty" class="empty" hidden><span data-i18n="slideshow.empty">📸 The slideshow starts with the first photo</span><small data-i18n="slideshow.tapFullscreen">Tap the screen to go full screen</small></div>
+
+  <script src="i18n.js"></script>
+  <script>
+    'use strict';
+    const HOLD_MS = 3000; // how long each photo is shown
+    const FADE_MS = 1200; // crossfade duration
+    document.documentElement.style.setProperty('--hold', `${HOLD_MS}ms`);
+    document.documentElement.style.setProperty('--fade', `${FADE_MS}ms`);
+
+    const layers = [document.getElementById('a'), document.getElementById('b')];
+    let front = 0;
+    let photos = [];
+    let index = -1;
+    let priority = []; // new photos to show first
+    let timer = null;
+
+    const preload = (url) => new Promise((resolve) => {
+      const img = new Image();
+      img.onload = img.onerror = () => resolve(url);
+      img.src = url;
+    });
+
+    async function loadPhotos() {
+      try {
+        const list = await fetch('/api/photos').then((r) => r.json());
+        // chronological order for the slideshow
+        photos = list.slice().reverse();
+      } catch (_) { /* keep the current list */ }
+      document.getElementById('empty').hidden = photos.length > 0;
+    }
+
+    function pickNext() {
+      if (priority.length) {
+        const name = priority.shift();
+        const i = photos.findIndex((p) => p.name === name);
+        if (i >= 0) { index = i; return { photo: photos[i], fresh: true }; }
+      }
+      if (!photos.length) return null;
+      index = (index + 1) % photos.length;
+      return { photo: photos[index], fresh: false };
+    }
+
+    async function next() {
+      clearTimeout(timer);
+      const item = pickNext();
+      if (!item) { timer = setTimeout(next, 2000); return; }
+      await preload(item.photo.view);
+
+      const back = layers[1 - front];
+      back.querySelector('img').src = item.photo.view;
+      back.querySelector('.bg').style.backgroundImage = `url("${item.photo.thumb}")`;
+      // restart the zoom animation
+      back.classList.remove('show');
+      void back.offsetWidth;
+      back.classList.add('show');
+      layers[front].classList.remove('show');
+      front = 1 - front;
+
+      document.getElementById('badge').classList.toggle('on', item.fresh);
+      document.getElementById('counter').textContent = `${index + 1} / ${photos.length}`;
+      const bar = document.getElementById('progress');
+      bar.classList.remove('run');
+      void bar.offsetWidth;
+      bar.classList.add('run');
+
+      timer = setTimeout(next, HOLD_MS + (item.fresh ? HOLD_MS : 0)); // a new photo stays a little longer
+    }
+
+    // New photos in real time
+    function connectEvents() {
+      const es = new EventSource('/api/events');
+      es.onmessage = async (msg) => {
+        const ev = JSON.parse(msg.data);
+        if (ev.type === 'settings' && ev.settings.lang !== I18N.lang) return location.reload(); // language changed in /admin
+        if (ev.type !== 'photo') return;
+        const wasEmpty = photos.length === 0;
+        photos = photos.filter((p) => p.name !== ev.photo.name).concat(ev.photo);
+        document.getElementById('empty').hidden = true;
+        priority.push(ev.photo.name);
+        if (wasEmpty) next();
+      };
+    }
+
+    // Full screen on tap / click
+    document.addEventListener('click', () => {
+      const el = document.documentElement;
+      if (!document.fullscreenElement) (el.requestFullscreen || el.webkitRequestFullscreen)?.call(el);
+    });
+    async function keepAwake() {
+      try { if ('wakeLock' in navigator) await navigator.wakeLock.request('screen'); } catch (_) {}
+    }
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') keepAwake(); });
+
+    (async function init() {
+      await loadSettingsLang();
+      await loadPhotos();
+      connectEvents();
+      keepAwake();
+      next();
+      setInterval(loadPhotos, 60000); // also picks up deleted photos
+    })();
+    document.addEventListener('contextmenu', (e) => e.preventDefault()); // no "Save image"
+</script>
+</body>
+</html>

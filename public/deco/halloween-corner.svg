@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 170">
+  <defs>
+    <radialGradient id="p" cx=".4" cy=".35" r=".75"><stop offset="0" stop-color="#ffb347"/><stop offset="1" stop-color="#e2600a"/></radialGradient>
+    <radialGradient id="glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffd84a" stop-opacity=".55"/><stop offset="1" stop-color="#ffd84a" stop-opacity="0"/></radialGradient>
+  </defs>
+  <ellipse cx="85" cy="112" rx="85" ry="60" fill="url(#glow)"/>
+  <!-- tendril -->
+  <path d="M98 66 q24 -14 40 2 q10 12 -2 20 q-8 4 -10 -4" fill="none" stroke="#4e7a27" stroke-width="4" stroke-linecap="round"/>
+  <!-- big pumpkin -->
+  <ellipse cx="85" cy="114" rx="62" ry="48" fill="url(#p)"/>
+  <g fill="none" stroke="#b84a04" stroke-width="3" opacity=".55">
+    <ellipse cx="85" cy="114" rx="22" ry="48"/><ellipse cx="85" cy="114" rx="44" ry="48"/>
+  </g>
+  <path d="M80 70 q0 -20 14 -26 l6 7 q-10 5 -10 19 z" fill="#4e7a27"/>
+  <!-- glowing face -->
+  <g fill="#ffe37a" stroke="#5a2300" stroke-width="2" stroke-linejoin="round">
+    <path d="M52 104 l12 -18 l12 18 z"/><path d="M94 104 l12 -18 l12 18 z"/>
+    <path d="M78 116 l7 -10 l7 10 z"/>
+    <path d="M50 126 q35 26 70 0 l-9 3 l-6 8 l-7 -7 l-8 8 l-8 -8 l-7 7 l-6 -8 z"/>
+  </g>
+  <!-- small pumpkin -->
+  <ellipse cx="190" cy="138" rx="36" ry="28" fill="url(#p)"/>
+  <g fill="none" stroke="#b84a04" stroke-width="2.5" opacity=".55">
+    <ellipse cx="190" cy="138" rx="13" ry="28"/><ellipse cx="190" cy="138" rx="26" ry="28"/>
+  </g>
+  <path d="M187 112 q0 -12 9 -15 l4 5 q-6 3 -7 10 z" fill="#4e7a27"/>
+</svg>

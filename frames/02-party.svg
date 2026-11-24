@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1000" width="1500" height="1000">
+  <title>Party</title>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff5d73"/><stop offset=".25" stop-color="#ffc94a"/><stop offset=".5" stop-color="#2ee6a6"/>
+      <stop offset=".75" stop-color="#4cc9f0"/><stop offset="1" stop-color="#a98bff"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#g)" fill-rule="evenodd" d="M0 0H1500V1000H0Z M90 45H1410A45 45 0 0 1 1455 90V910A45 45 0 0 1 1410 955H90A45 45 0 0 1 45 910V90A45 45 0 0 1 90 45Z"/>
+  <rect x="83" y="18" width="18" height="8" rx="3" fill="#ff7ac6" transform="rotate(12 92 22)"/>
+  <circle cx="30" cy="33" r="5" fill="#2ee6a6"/>
+  <circle cx="200" cy="70" r="11" fill="#ff5d73"/>
+  <rect x="97" y="38" width="18" height="8" rx="3" fill="#a98bff" transform="rotate(108 106 42)"/>
+  <circle cx="26" cy="32" r="5" fill="#ffc94a"/>
+  <circle cx="118" cy="85" r="5" fill="#ffc94a"/>
+  <rect x="129" y="25" width="18" height="8" rx="3" fill="#4cc9f0" transform="rotate(36 138 29)"/>
+  <circle cx="86" cy="108" r="7" fill="#a98bff"/>
+  <circle cx="32" cy="40" r="9" fill="#ffc94a"/>
+  <rect x="13" y="41" width="18" height="8" rx="3" fill="#a98bff" transform="rotate(15 22 45)"/>
+  <circle cx="109" cy="108" r="11" fill="#a98bff"/>
+  <circle cx="138" cy="124" r="9" fill="#4cc9f0"/>
+  <rect x="20" y="81" width="18" height="8" rx="3" fill="#ff7ac6" transform="rotate(62 29 85)"/>
+  <circle cx="41" cy="21" r="9" fill="#4cc9f0"/>
+  <circle cx="158" cy="77" r="5" fill="#ff5d73"/>
+  <rect x="119" y="30" width="18" height="8" rx="3" fill="#2ee6a6" transform="rotate(38 128 34)"/>
+  <rect x="1320" y="129" width="18" height="8" rx="3" fill="#ff7ac6" transform="rotate(19 1329 133)"/>
+  <circle cx="1386" cy="143" r="9" fill="#ffffff"/>
+  <circle cx="1416" cy="51" r="11" fill="#4cc9f0"/>
+  <rect x="1448" y="2" width="18" height="8" rx="3" fill="#2ee6a6" transform="rotate(121 1457 6)"/>
+  <circle cx="1331" cy="17" r="9" fill="#ff7ac6"/>
+  <circle cx="1498" cy="159" r="11" fill="#ffffff"/>
+  <rect x="1420" y="46" width="18" height="8" rx="3" fill="#ff7ac6" transform="rotate(88 1429 50)"/>
+  <circle cx="1474" cy="23" r="5" fill="#ffc94a"/>
+  <circle cx="1379" cy="43" r="7" fill="#2ee6a6"/>
+  <rect x="1347" y="100" width="18" height="8" rx="3" fill="#ffffff" transform="rotate(127 1356 104)"/>
+  <circle cx="1465" cy="30" r="9" fill="#a98bff"/>
+  <circle cx="1442" cy="198" r="9" fill="#ffffff"/>
+  <rect x="1487" y="167" width="18" height="8" rx="3" fill="#ff7ac6" transform="rotate(97 1496 171)"/>
+  <circle cx="1285" cy="52" r="7" fill="#ffc94a"/>
+  <circle cx="1429" cy="27" r="7" fill="#4cc9f0"/>
+  <rect x="1408" y="-3" width="18" height="8" rx="3" fill="#4cc9f0" transform="rotate(136 1417 1)"/>
+  <rect x="56" y="915" width="18" height="8" rx="3" fill="#ffc94a" transform="rotate(176 65 919)"/>
+  <circle cx="16" cy="799" r="5" fill="#ff7ac6"/>
+  <circle cx="24" cy="881" r="11" fill="#ffffff"/>
+  <rect x="80" y="932" width="18" height="8" rx="3" fill="#4cc9f0" transform="rotate(162 89 936)"/>
+  <circle cx="105" cy="968" r="11" fill="#ffc94a"/>
+  <circle cx="54" cy="968" r="5" fill="#ff5d73"/>
+  <rect x="20" y="989" width="18" height="8" rx="3" fill="#ff5d73" transform="rotate(93 29 993)"/>
+  <circle cx="152" cy="983" r="11" fill="#ffc94a"/>
+  <circle cx="55" cy="977" r="9" fill="#2ee6a6"/>
+  <rect x="114" y="974" width="18" height="8" rx="3" fill="#4cc9f0" transform="rotate(119 123 978)"/>
+  <circle cx="111" cy="941" r="5" fill="#ffc94a"/>
+  <circle cx="71" cy="835" r="7" fill="#4cc9f0"/>
+  <rect x="117" y="954" width="18" height="8" rx="3" fill="#a98bff" transform="rotate(92 126 958)"/>
+  <circle cx="39" cy="955" r="9" fill="#ff5d73"/>
+  <circle cx="48" cy="779" r="9" fill="#ff7ac6"/>
+  <rect x="10" y="864" width="18" height="8" rx="3" fill="#2ee6a6" transform="rotate(57 19 868)"/>
+  <rect x="1445" y="868" width="18" height="8" rx="3" fill="#2ee6a6" transform="rotate(162 1454 872)"/>
+  <circle cx="1478" cy="929" r="7" fill="#ffffff"/>
+  <circle cx="1446" cy="817" r="7" fill="#ff7ac6"/>
+  <rect x="1441" y="947" width="18" height="8" rx="3" fill="#ff7ac6" transform="rotate(7 1450 951)"/>
+  <circle cx="1426" cy="784" r="9" fill="#4cc9f0"/>
+  <circle cx="1460" cy="944" r="11" fill="#2ee6a6"/>
+  <rect x="1410" y="822" width="18" height="8" rx="3" fill="#2ee6a6" transform="rotate(93 1419 826)"/>
+  <circle cx="1454" cy="993" r="7" fill="#4cc9f0"/>
+  <circle cx="1429" cy="933" r="5" fill="#a98bff"/>
+  <rect x="1426" y="888" width="18" height="8" rx="3" fill="#ffffff" transform="rotate(164 1435 892)"/>
+  <circle cx="1476" cy="960" r="7" fill="#4cc9f0"/>
+  <circle cx="1379" cy="965" r="9" fill="#ffffff"/>
+  <rect x="1487" y="949" width="18" height="8" rx="3" fill="#ff7ac6" transform="rotate(101 1496 953)"/>
+  <circle cx="1452" cy="887" r="7" fill="#ff5d73"/>
+  <circle cx="1437" cy="987" r="11" fill="#ffc94a"/>
+  <rect x="1305" y="952" width="18" height="8" rx="3" fill="#ffffff" transform="rotate(152 1314 956)"/>
+  <rect x="290" y="870" width="920" height="100" rx="50" fill="#ffffff"/>
+  <rect x="290" y="870" width="920" height="100" rx="50" fill="none" stroke="url(#g)" stroke-width="6"/>
+  <text x="750" y="935" text-anchor="middle" font-family="DejaVu Sans" font-weight="bold" font-size="48" fill="#2a1450" data-fit="840" data-char-width="0.56">{{title}}</text>
+</svg>

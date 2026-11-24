@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en" data-theme="night">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1d1240" />
+  <title>Flash &amp; Furious · Administration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="themes.css" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body class="admin">
+  <header class="topbar">
+    <div class="status" id="status"><span class="dot"></span><span id="statusText" data-i18n="status.connecting">Connecting…</span></div>
+    <h1 class="admin-title" data-i18n="app.admin">Administration</h1>
+    <a class="open-booth" href="/" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+      <span data-i18n="admin.openBooth">Open Flash &amp; Furious</span>
+    </a>
+  </header>
+
+  <main class="admin-main">
+    <section class="card">
+      <h2 data-i18n="admin.display">Display</h2>
+      <label class="switch-row" id="liveRow">
+        <span>
+          <strong data-i18n="admin.live">Live view during the countdown</strong>
+          <small data-i18n="admin.liveHint"></small>
+        </span>
+        <input type="checkbox" id="liveToggle" class="switch" />
+      </label>
+      <label class="switch-row">
+        <span>
+          <strong data-i18n="admin.mirror">Mirror effect</strong>
+          <small data-i18n="admin.mirrorHint"></small>
+        </span>
+        <input type="checkbox" id="mirrorToggle" class="switch" />
+      </label>
+      <div class="lang-row">
+        <strong data-i18n="admin.language">Language</strong>
+        <small data-i18n="admin.languageHint"></small>
+        <div class="seg" id="langSeg"></div>
+      </div>
+    </section>
+
+    <section class="card" id="focusCard">
+      <h2 data-i18n="admin.focus">Focus</h2>
+      <p class="hint" id="focusHint"></p>
+      <div class="seg big" id="focusSeg">
+        <button data-focus="auto" data-i18n="admin.focusAuto">Auto</button>
+        <button data-focus="manual" data-i18n="admin.focusManual">Manual</button>
+      </div>
+      <div class="focus-help" id="focusHelp" hidden>
+        <h3 id="focusTitle"></h3>
+        <ol id="focusSteps" class="steps"></ol>
+        <div class="focus-actions">
+          <button id="focusNowBtn" class="big-btn focus-now">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>
+            <span class="lbl" data-i18n="admin.focusNow">Focus now</span>
+          </button>
+          <button id="focusCancel" class="text-btn" data-i18n="admin.cancel">Cancel</button>
+        </div>
+        <p class="hint" data-i18n="admin.focusAutoClose"></p>
+      </div>
+    </section>
+
+    <section class="card net-card" id="netBanner" hidden>
+      <h2 data-i18n="admin.connect">Connect the tablet</h2>
+      <div class="net-body">
+        <img id="netQr" class="net-qr" alt="" data-i18n-attr="alt:admin.qrAlt" />
+        <p class="net-main" data-i18n="admin.connectHint"></p>
+      </div>
+      <strong id="netUrl" class="net-url"></strong>
+      <small id="netMore" class="net-more"></small>
+      <div class="net-links" id="netLinks"></div>
+    </section>
+
+    <section class="card wide">
+      <h2 data-i18n="admin.theme">Colour theme</h2>
+      <p class="hint" data-i18n="admin.themeHint"></p>
+      <div id="themeGrid" class="theme-grid"></div>
+      <label class="switch-row deco-row">
+        <span>
+          <strong data-i18n="admin.deco">Theme decorations on photos</strong>
+          <small id="decoHint"></small>
+        </span>
+        <input type="checkbox" id="decoToggle" class="switch" />
+      </label>
+    </section>
+
+    <section class="card wide">
+      <h2 data-i18n="admin.frames">Frame applied to photos</h2>
+      <form class="title-form" id="titleForm" autocomplete="off">
+        <label for="titleInput" data-i18n="admin.frameText">Text shown on frames</label>
+        <div class="title-row">
+          <input id="titleInput" type="text" maxlength="60" data-i18n-attr="placeholder:admin.framePlaceholder" />
+          <button type="submit" class="big-btn save-btn" data-i18n="admin.save">Save</button>
+        </div>
+        <small data-i18n="admin.frameTextHint"></small>
+      </form>
+      <p class="hint" data-i18n-html="admin.framesHint"></p>
+      <div id="frameGrid" class="frame-grid"></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="i18n.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

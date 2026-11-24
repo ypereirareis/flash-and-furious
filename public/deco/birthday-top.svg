@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 130">
+  <defs>
+    <radialGradient id="b1" cx=".35" cy=".3" r=".7"><stop offset="0" stop-color="#ffb8d9"/><stop offset="1" stop-color="#ff4f9a"/></radialGradient>
+    <radialGradient id="b2" cx=".35" cy=".3" r=".7"><stop offset="0" stop-color="#bfe9ff"/><stop offset="1" stop-color="#2fa6e0"/></radialGradient>
+    <radialGradient id="b3" cx=".35" cy=".3" r=".7"><stop offset="0" stop-color="#fff0a6"/><stop offset="1" stop-color="#ffc21a"/></radialGradient>
+  </defs>
+  <!-- bunting -->
+  <path d="M0 6 Q110 40 220 8" fill="none" stroke="#ffffff" stroke-opacity=".8" stroke-width="1.5"/>
+  <g>
+    <path d="M70 21 l18 4 l-11 18 z" fill="#2ee6a6"/><path d="M100 25 l18 1 l-8 19 z" fill="#ffd23f"/>
+    <path d="M130 25 l18 -2 l-6 19 z" fill="#ff6fb5"/><path d="M160 20 l18 -4 l-4 20 z" fill="#4cc9f0"/>
+    <path d="M190 14 l17 -5 l-2 20 z" fill="#a98bff"/>
+  </g>
+  <!-- balloons -->
+  <g fill="none" stroke="#ffffff" stroke-opacity=".75" stroke-width="1.3">
+    <path d="M28 70 q-6 20 4 40 M58 56 q8 26 -4 54 M46 92 q-4 10 0 18"/>
+  </g>
+  <ellipse cx="28" cy="46" rx="20" ry="25" fill="url(#b1)"/><path d="M25 70 l3 -3 l3 3 z" fill="#ff4f9a"/>
+  <ellipse cx="58" cy="32" rx="19" ry="24" fill="url(#b2)"/><path d="M55 55 l3 -3 l3 3 z" fill="#2fa6e0"/>
+  <ellipse cx="46" cy="74" rx="14" ry="18" fill="url(#b3)"/><path d="M43 91 l3 -3 l3 3 z" fill="#ffc21a"/>
+  <g fill="#ffffff" fill-opacity=".55"><ellipse cx="21" cy="36" rx="4" ry="7"/><ellipse cx="51" cy="22" rx="4" ry="7"/><ellipse cx="41" cy="67" rx="3" ry="5"/></g>
+</svg>

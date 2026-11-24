@@ -1,0 +1,45 @@
+name: flash-and-furious
+
+services:
+  flash-and-furious:
+    build: .
+    image: flash-and-furious:latest
+    container_name: flash-and-furious
+    restart: unless-stopped
+    stop_grace_period: 15s
+    # Host network: the server listens directly on the host's port 3000 and knows
+    # its real IP addresses (shown in /admin to connect the tablet).
+    network_mode: host
+    volumes:
+      # Photos stored on the host, in ./photos
+      - ./photos:/app/photos
+      # Frames (transparent PNG or SVG), editable without rebuilding the image
+      - ./frames:/app/frames:ro
+      # Settings saved from /admin
+      - ./config:/app/config
+      # USB bus mounted as a volume (not as a "device") to support
+      # plugging / unplugging the camera while running
+      - /dev/bus/usb:/dev/bus/usb
+    device_cgroup_rules:
+      # 189 = USB devices (camera access only, no --privileged)
+      - "c 189:* rmw"
+    environment:
+      - TZ=${TZ:-Europe/Paris}
+      - FRAME_TITLE=${FRAME_TITLE:-Flash & Furious}
+      # Default UI language (en, fr); can then be changed in /admin
+      - DEFAULT_LANG=${DEFAULT_LANG:-fr}
+      # Camera driver (server/cameras/ folder)
+      - CAMERA_DRIVER=${CAMERA_DRIVER:-canon-eos-1000d}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - DEFAULT_DELAY=${DEFAULT_DELAY:-5}
+      # Messages before the countdown: translated defaults; set them here to override
+      # (an empty value hides the message)
+      # - PRE_MESSAGE=Don't move until the flash!!
+      # - LOOK_MESSAGE=Look at the camera
+      - PRE_MESSAGE_SECONDS=${PRE_MESSAGE_SECONDS:-3}
+      - FOCUS_BEFORE_END=${FOCUS_BEFORE_END:-2}
+      - LIVE_QUALITY=${LIVE_QUALITY:-70}
+      - LIVE_MAX_SECONDS=${LIVE_MAX_SECONDS:-10}
+      # Address to show in /admin if automatic detection is wrong (e.g. 192.168.1.42)
+      - HOST_IP=${HOST_IP:-}

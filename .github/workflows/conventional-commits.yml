@@ -1,0 +1,30 @@
+# Checks that the pull request title follows Conventional Commits.
+# With squash merging, the PR title becomes the commit message on main.
+# Nothing is built here: a single shell step, no third-party action, no token permissions.
+name: Conventional Commits
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions: {}
+
+jobs:
+  pr-title:
+    name: PR title
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check the pull request title
+        env:
+          TITLE: ${{ github.event.pull_request.title }} # passed as data, never interpolated into the script
+        run: |
+          pattern='^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([a-z0-9._/-]+\))?!?: [^ ].{0,98}$'
+          if printf '%s\n' "$TITLE" | grep -Eq "$pattern"; then
+            echo "OK: $TITLE"
+          else
+            echo "::error::PR title must follow Conventional Commits: <type>[(scope)][!]: <description> (max 100 characters)"
+            echo "Types: build chore ci docs feat fix perf refactor revert style test"
+            echo "Example: feat(admin): add a language selector"
+            exit 1
+          fi
