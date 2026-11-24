@@ -193,7 +193,19 @@ Commit messages and pull request titles follow [Conventional Commits](https://ww
   git config core.hooksPath .githooks
   ```
 - On GitHub, `main` only changes through squash-merged pull requests: the PR title becomes the commit message,
-  and a check (`.github/workflows/conventional-commits.yml`) must pass. It only reads the title: nothing is built on GitHub.
+  and a check (`.github/workflows/conventional-commits.yml`) must pass.
+
+Every pull request must also pass these checks (`.github/workflows/`). Nothing is published: the Docker image
+is only built on GitHub to be tested and scanned, then thrown away.
+
+| Check | What it does | Run it locally |
+|---|---|---|
+| Lint | JavaScript syntax, translations (same keys in every language, every used key exists), ShellCheck, hadolint | `node scripts/check-i18n.js` |
+| Docker build & smoke test | builds the image, starts it without a camera and checks pages, API, translations, frame rendering and cache headers | `./scripts/smoke-test.sh` (against a running instance) |
+| Trivy | fails on fixable HIGH / CRITICAL vulnerabilities in the image (also runs every Monday) | see `ci.yml` |
+| CodeQL analysis | static security analysis of the JavaScript code (results in Security > Code scanning) | |
+
+Workflows only use official GitHub actions pinned to a commit SHA, and tools from Docker images pinned to a digest.
 
 The Docker image is built locally in two stages: npm packages are installed in a cached stage that is only
 rebuilt when `package.json` or `package-lock.json` change.
