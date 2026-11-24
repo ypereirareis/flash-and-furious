@@ -16,8 +16,9 @@ npm_docker() {
 }
 
 echo "== Outdated dependencies =="
-# npm outdated needs node_modules: run it inside the app image
-docker compose run --rm --no-deps -T --entrypoint npm flash-and-furious outdated || true
+# npm outdated needs node_modules: run it in the image's "deps" stage (the final image has no npm)
+docker build -q --target deps -t flash-and-furious:deps . >/dev/null
+docker run --rm flash-and-furious:deps npm outdated || true
 
 if [[ "${1:-}" == "--check" ]]; then
   echo "(--check: nothing was changed)"
