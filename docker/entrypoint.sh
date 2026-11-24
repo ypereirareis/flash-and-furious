@@ -45,7 +45,10 @@ check_photos_dir() {
   fi
   rm -f "$probe"
 
-  [ -n "$PUID" ] && [ -n "$PGID" ] || { log "PUID/PGID not set: ownership is not checked."; return; }
+  if [ -z "$PUID" ] || [ -z "$PGID" ]; then
+    log "PUID/PGID not set: ownership is not checked."
+    return
+  fi
 
   # 4. Folder just created by Docker (empty and owned by root): hand it over to PUID:PGID
   if [ "$(stat -c %u "$PHOTOS_DIR")" = "0" ] && [ "$PUID" != "0" ] && [ -z "$(ls -A "$PHOTOS_DIR")" ]; then

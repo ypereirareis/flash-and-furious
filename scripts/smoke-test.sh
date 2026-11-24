@@ -40,7 +40,8 @@ expect "theme decoration"     /deco/christmas-corner.svg 200 '<svg'
 expect "no direct photo URL"  /photos/x.jpg            404
 expect "unknown media"        /media/view/missing.jpg  404
 
-if curl -sI "$BASE/" | grep -qi '^cache-control: no-store'; then ok "no-store cache header"; else fail "no-store cache header missing"; fi
+headers=$(curl -sI "$BASE/" || true)
+if grep -qi '^cache-control: no-store' <<<"$headers"; then ok "no-store cache header"; else fail "no-store cache header missing"; fi
 
 if (( failures )); then echo "$failures check(s) failed" >&2; exit 1; fi
 echo "All checks passed"
