@@ -15,9 +15,17 @@ RUN --mount=type=cache,target=/root/.npm \
 FROM node:22-bookworm-slim AS runtime
 
 # gphoto2: camera control over USB (PTP). No firmware writes.
+# Debian package versions are not pinned: exact versions disappear from the archive with every
+# security update, which would break the build. The base image tag fixes the Debian release.
+# hadolint ignore=DL3008
 RUN apt-get update \
  && apt-get install -y --no-install-recommends gphoto2 ca-certificates tzdata fonts-dejavu-core \
  && rm -rf /var/lib/apt/lists/*
+
+# npm, npx and corepack are only needed to install packages (stage 1), not to run the app:
+# removing them shrinks the image and its attack surface (npm bundles many dependencies).
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+           /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
