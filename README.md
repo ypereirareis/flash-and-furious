@@ -182,6 +182,22 @@ Only updates compatible with the `package.json` ranges are applied (e.g. `^4.21.
 If the rebuild fails or the app stops responding, the previous versions are restored and restarted.
 To move to a major version (e.g. express 5), change the version in `package.json`, then run the script.
 
+## Contributing
+
+Commit messages and pull request titles follow [Conventional Commits](https://www.conventionalcommits.org):
+`<type>[(scope)][!]: <description>`, with the types `build chore ci docs feat fix perf refactor revert style test`
+(e.g. `feat(admin): add a language selector`).
+
+- Locally, a `commit-msg` hook rejects other messages. Enable it once per clone:
+  ```bash
+  git config core.hooksPath .githooks
+  ```
+- On GitHub, `main` only changes through squash-merged pull requests: the PR title becomes the commit message,
+  and a check (`.github/workflows/conventional-commits.yml`) must pass. It only reads the title: nothing is built on GitHub.
+
+The Docker image is built locally in two stages: npm packages are installed in a cached stage that is only
+rebuilt when `package.json` or `package-lock.json` change.
+
 ## API
 
 - `GET /api/status`: camera detected or not, shot in progress
