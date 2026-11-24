@@ -42,6 +42,7 @@ services:
       # Photos folder: path on the host (for messages), external disk expected or not
       - PHOTOS_HOST_PATH=${PHOTOS_PATH:-./photos}
       - PHOTOS_EXTERNAL=${PHOTOS_EXTERNAL:-false}
+      - STORAGE_MIN_FREE_MB=${STORAGE_MIN_FREE_MB:-200}
       - DEFAULT_DELAY=${DEFAULT_DELAY:-5}
       # Messages before the countdown: translated defaults; set them here to override
       # (an empty value hides the message)

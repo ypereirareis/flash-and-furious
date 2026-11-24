@@ -119,7 +119,8 @@
   "storage": {
     "notMounted": "Stockage des photos : le dossier des photos n'est pas monté depuis l'hôte, les photos seraient perdues. Vérifiez PHOTOS_PATH.",
     "externalMissing": "Stockage des photos : le disque externe n'est pas branché ou pas monté. Les photos sont bloquées.",
-    "notWritable": "Stockage des photos : impossible d'écrire dans le dossier des photos (disque en lecture seule ou débranché ?). Les photos sont bloquées."
+    "notWritable": "Stockage des photos : impossible d'écrire dans le dossier des photos (disque en lecture seule ou débranché ?). Les photos sont bloquées.",
+    "full": "Stockage des photos : le disque est presque plein. Libérez de la place ou utilisez un autre disque."
   },
   "cameras": {
     "canon-eos-1000d": {

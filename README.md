@@ -25,13 +25,15 @@ The photos folder on the host is set in a `.env` file next to `docker-compose.ym
 | `PHOTOS_PATH` | `./photos` | Folder on the host: relative to the project or absolute, on the system disk or on an external disk |
 | `PHOTOS_CREATE` | `true` | Missing folder: `true` = created at start-up, `false` = `docker compose up` fails ("bind source path does not exist") |
 | `PHOTOS_EXTERNAL` | `false` | `true` = the folder must be on another disk than the project: if the external disk is not plugged in or not mounted, photos are blocked instead of silently filling the system disk |
+| `STORAGE_MIN_FREE_MB` | `200` | Photos are blocked (with an alert) when less free space than this is left on the disk |
 | `PUID` / `PGID` | `1000` | Owner of the folder and of the photos on the host |
 
 On every start, the container entrypoint (`docker/entrypoint.sh`) checks the folder. It is idempotent: it only changes what is not already right.
 
 - A folder that Docker has just created (empty, owned by root) is handed over to `PUID:PGID`; the `.cache/` and `originals/` subfolders are created if missing.
 - An existing folder is never modified: if `PUID:PGID` cannot write to it, a warning gives the command to fix it on the host (`sudo chown …`).
-- Blocking problems (folder not mounted from the host, external disk missing, read-only folder) are logged, shown on the tablet and in `/admin`, and photos are refused until they are fixed. The server checks again before every photo, so a disk unplugged during an event is detected.
+- Blocking problems (folder not mounted from the host, external disk missing, read-only folder, disk almost full) are logged, shown on the tablet and in `/admin`, and photos are refused until they are fixed.
+- The server checks again before every photo with a real write test, so a disk unplugged or a folder deleted during an event is detected. If a photo could not be saved, the camera is not fired again for nothing: the storage problem is reported instead.
 
 ```bash
 docker compose logs | grep storage   # what the entrypoint checked or changed
@@ -196,7 +198,7 @@ The admin page adapts by itself: help texts provided by the driver, sections hid
 | `HOST_IP` | (auto) | Address shown in `/admin` for the tablet |
 | `TZ` | Europe/Paris | Time zone used to name files |
 | `PUID` / `PGID` | 1000 | Owner of the files created in the photos folder |
-| `PHOTOS_PATH`, `PHOTOS_CREATE`, `PHOTOS_EXTERNAL` | see [Photos folder](#photos-folder) | Photos folder on the host |
+| `PHOTOS_PATH`, `PHOTOS_CREATE`, `PHOTOS_EXTERNAL`, `STORAGE_MIN_FREE_MB` | see [Photos folder](#photos-folder) | Photos folder on the host |
 
 ## The camera stops responding ("PTP Timeout")
 

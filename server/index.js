@@ -88,21 +88,19 @@ function translate(m) {
 /* ------------------------------------------------------------------ */
 /* Photo storage                                                       */
 /* ------------------------------------------------------------------ */
-const STORAGE_MESSAGES = {
-  notMounted: 'storage.notMounted',
-  externalMissing: 'storage.externalMissing',
-  notWritable: 'storage.notWritable',
-};
 let lastStorageProblem = null;
-/** Problem preventing photos from being saved, as an untranslated message, or null. */
-function storageError() {
-  const problem = storage.check(PHOTOS_DIR, settings.CONFIG_DIR);
+/**
+ * Problem preventing photos from being saved, as an untranslated message, or null.
+ * { probe: true } also makes a real write test (right before and after a photo).
+ */
+function storageError({ probe = false } = {}) {
+  const problem = storage.check(PHOTOS_DIR, settings.CONFIG_DIR, { probe });
   if (problem !== lastStorageProblem) {
     if (problem) console.error(`[storage] photos blocked: ${problem} (${PHOTOS_DIR})`);
     else if (lastStorageProblem) console.log('[storage] photos folder OK again');
     lastStorageProblem = problem;
   }
-  return problem ? { key: STORAGE_MESSAGES[problem] } : null;
+  return problem ? { key: `storage.${problem}` } : null;
 }
 /** What currently prevents taking a photo: storage first, then the camera. */
 const blockingError = () => storageError() || state.cameraError;
@@ -266,6 +264,13 @@ async function runShoot(delay, useLive, frame, { bw = false } = {}) {
     const short = (o) => String(o || '').trim().replace(/\s+/g, ' ') || '(nothing)';
     let out = await camera.capture(PHOTOS_DIR, baseName);
     let files = await listShot();
+    // No file because it could not be saved (disk unplugged, folder deleted...)?
+    // Then retrying would only fire the camera again for nothing.
+    const checkSaved = () => {
+      const problem = !files.length && storageError({ probe: true });
+      if (problem) throw fail(problem, 'storage');
+    };
+    checkSaved();
     if (!files.length) {
       // Some cameras refuse to fire without focus: the driver decides whether to retry
       if (!camera.shouldRetryWithoutFile({ manual })) {
@@ -278,6 +283,7 @@ async function runShoot(delay, useLive, frame, { bw = false } = {}) {
       setPhase('capturing');
       out = await camera.capture(PHOTOS_DIR, baseName);
       files = await listShot();
+      checkSaved();
       if (!files.length) {
         console.warn(`[shoot] still no photo. Camera: ${short(out)}`);
         throw fail({ camera: 'focusFailed' }, 'no file');
@@ -435,7 +441,7 @@ app.get('/api/status', (req, res) => {
 
 app.post('/api/shoot', async (req, res) => {
   if (state.busy) return res.status(409).json({ error: tr('shoot.busy') });
-  const storageProblem = storageError(); // checked right before every photo (disk unplugged?)
+  const storageProblem = storageError({ probe: true }); // real write test before every photo (disk unplugged?)
   if (storageProblem) return res.status(503).json({ error: translate(storageProblem) });
   if (!state.camera || state.cameraError) return res.status(503).json({ error: translate(state.cameraError) || tr('status.noCamera') });
   state.busy = true; // reserved right away (reading the frame is asynchronous)

@@ -119,7 +119,8 @@
   "storage": {
     "notMounted": "Photo storage: the photos folder is not mounted from the host, photos would be lost. Check PHOTOS_PATH.",
     "externalMissing": "Photo storage: the external disk is not plugged in or not mounted. Photos are blocked.",
-    "notWritable": "Photo storage: the photos folder cannot be written (read-only or unplugged disk?). Photos are blocked."
+    "notWritable": "Photo storage: the photos folder cannot be written (read-only or unplugged disk?). Photos are blocked.",
+    "full": "Photo storage: the disk is almost full. Free some space or use another disk."
   },
   "cameras": {
     "canon-eos-1000d": {
