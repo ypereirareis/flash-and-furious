@@ -37,7 +37,7 @@ jobs:
       - name: Translations
         run: node scripts/check-i18n.js
       - name: Shell scripts (ShellCheck)
-        run: shellcheck scripts/*.sh .githooks/commit-msg
+        run: shellcheck scripts/*.sh docker/*.sh .githooks/commit-msg
       - name: Dockerfile (hadolint)
         run: docker run --rm -i "$HADOLINT_IMAGE" hadolint - < Dockerfile
 
@@ -52,12 +52,23 @@ jobs:
       - name: Build the image
         run: docker build -t flash-and-furious:ci .
       - name: Start the app (without a camera)
-        run: docker run -d --name app -p 3000:3000 -e DEFAULT_LANG=en flash-and-furious:ci
+        run: |
+          mkdir -p "$RUNNER_TEMP/photos"
+          docker run -d --name app -p 3000:3000 -e DEFAULT_LANG=en \
+            -e PUID="$(id -u)" -e PGID="$(id -g)" -v "$RUNNER_TEMP/photos:/app/photos" flash-and-furious:ci
       - name: Smoke test
         run: ./scripts/smoke-test.sh http://localhost:3000
+      - name: Photos folder prepared by the entrypoint
+        run: test -d "$RUNNER_TEMP/photos/originals" && test -d "$RUNNER_TEMP/photos/.cache"
+      - name: Storage problems block photos (no photos folder mounted)
+        run: |
+          docker run -d --name nostorage -p 3001:3000 -e DEFAULT_LANG=en flash-and-furious:ci
+          for _ in $(seq 1 30); do curl -fsS localhost:3001/api/status >/dev/null 2>&1 && break; sleep 1; done
+          curl -fsS localhost:3001/api/status | grep -F 'Photo storage'
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST localhost:3001/api/shoot)" = 503
       - name: App logs
         if: always()
-        run: docker logs app
+        run: docker logs app; docker logs nostorage || true
 
   trivy:
     name: Trivy

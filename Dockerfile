@@ -33,10 +33,14 @@ COPY package.json package-lock.json ./
 COPY server ./server
 COPY public ./public
 COPY frames ./frames
+# Checks and prepares the photos folder on every start (idempotent), then runs the CMD
+COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 ENV NODE_ENV=production \
     PORT=3000 \
-    PHOTOS_DIR=/app/photos
+    PHOTOS_DIR=/app/photos \
+    CONFIG_DIR=/app/config
 
 EXPOSE 3000
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "server/index.js"]
