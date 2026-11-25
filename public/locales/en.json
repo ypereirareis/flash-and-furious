@@ -11,7 +11,8 @@
     "shooting": "Taking a photo…",
     "noCamera": "Camera not detected",
     "serverDown": "Server unreachable",
-    "reconnecting": "Reconnecting to the server…"
+    "reconnecting": "Reconnecting to the server…",
+    "tooManyRequests": "Too many requests from this device: try again in a minute."
   },
   "booth": {
     "fullscreen": "Full screen",

@@ -11,7 +11,8 @@
     "shooting": "Prise de vue en cours…",
     "noCamera": "Appareil non détecté",
     "serverDown": "Serveur injoignable",
-    "reconnecting": "Reconnexion au serveur…"
+    "reconnecting": "Reconnexion au serveur…",
+    "tooManyRequests": "Trop de requêtes depuis cet appareil : réessayez dans une minute."
   },
   "booth": {
     "fullscreen": "Plein écran",
