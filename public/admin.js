@@ -85,9 +85,15 @@ async function loadLanguages() {
   try { languages = await fetch('/api/languages').then((r) => r.json()); } catch (_) { languages = []; }
   renderLanguages();
 }
+// one small flag per language (public/flags/<id>.svg), its name as a tooltip
 function renderLanguages() {
   const buttons = languages.map((l) => {
-    const b = Object.assign(document.createElement('button'), { textContent: l.label });
+    const b = Object.assign(document.createElement('button'), { type: 'button', className: 'flag', title: l.label });
+    b.setAttribute('aria-label', l.label);
+    b.setAttribute('aria-pressed', String(l.id === settings.lang));
+    const img = Object.assign(document.createElement('img'), { src: `/flags/${encodeURIComponent(l.id)}.svg`, alt: '' });
+    img.addEventListener('error', () => img.replaceWith(l.id.toUpperCase())); // no flag drawn yet: its code
+    b.append(img);
     b.classList.toggle('active', l.id === settings.lang);
     b.addEventListener('click', () => l.id !== settings.lang && save({ lang: l.id }));
     return b;

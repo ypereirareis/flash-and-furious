@@ -16,6 +16,7 @@
   <header class="topbar">
     <div class="status" id="status"><span class="dot"></span><span id="statusText" data-i18n="status.connecting">Connecting…</span></div>
     <h1 class="admin-title" data-i18n="app.admin">Administration</h1>
+    <div class="lang-flags" id="langSeg" role="group" data-i18n-attr="aria-label:admin.language;title:admin.languageHint"></div>
     <button type="button" class="open-booth journal-btn" id="journalBtn">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h10l3 3v15H6z"/><path d="M9 9h7M9 13h7M9 17h4"/></svg>
       <span data-i18n="journal.open">Journal</span>
@@ -43,11 +44,6 @@
         </span>
         <input type="checkbox" id="mirrorToggle" class="switch" />
       </label>
-      <div class="lang-row">
-        <strong data-i18n="admin.language">Language</strong>
-        <small data-i18n="admin.languageHint"></small>
-        <div class="seg" id="langSeg"></div>
-      </div>
     </section>
 
     <section class="card" id="focusCard">
