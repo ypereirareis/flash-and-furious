@@ -5,6 +5,7 @@ const fs = require('fs');
 const fsp = fs.promises;
 const crypto = require('crypto');
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const sharp = require('sharp');
 const QRCode = require('qrcode');
 const camera = require('./cameras'); // camera driver (CAMERA_DRIVER)
@@ -522,6 +523,19 @@ app.use((_req, res, next) => {
   res.set({ 'Cache-Control': 'no-store, max-age=0', Pragma: 'no-cache', Expires: '0' });
   next();
 });
+// Limit per device on the routes that read files or compute images (photos, frame
+// previews): a device of the local network cannot keep the host busy. Generous for normal
+// use: the gallery loads its thumbnails as they scroll into view.
+app.use(
+  ['/api', '/media'],
+  rateLimit({
+    windowMs: 60 * 1000,
+    limit: 600,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    handler: (_req, res) => res.status(429).json({ error: tr('status.tooManyRequests') }),
+  })
+);
 app.get('/diaporama', (_req, res) => res.redirect(301, '/slideshow')); // old address
 app.use(express.static(path.join(__dirname, '..', 'public'), { extensions: ['html'], cacheControl: false, etag: false, lastModified: false }));
 // No direct access to the original files: photos are retrieved on the host (photos/ folder).
