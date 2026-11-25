@@ -74,19 +74,19 @@ function load(dir) {
   pausedUntil = 0;
   let text = '';
   try {
-    const size = fs.statSync(file).size;
-    // oversized file (should not happen): only its end is read
-    const from = Math.max(0, size - MAX_BYTES);
-    const fd = fs.openSync(file, 'r');
+    const fd = fs.openSync(file, 'r'); // size read on the open file, not on the path
     try {
+      const size = fs.fstatSync(fd).size;
+      // oversized file (should not happen): only its end is read
+      const from = Math.max(0, size - MAX_BYTES);
       const buf = Buffer.alloc(size - from);
-      fs.readSync(fd, buf, 0, buf.length, from);
-      text = buf.toString('utf8');
+      const read = fs.readSync(fd, buf, 0, buf.length, from);
+      text = buf.subarray(0, read).toString('utf8');
+      if (from > 0) text = text.slice(text.indexOf('\n') + 1); // first line cut in the middle
+      bytes = size;
     } finally {
       fs.closeSync(fd);
     }
-    if (from > 0) text = text.slice(text.indexOf('\n') + 1); // first line cut in the middle
-    bytes = size;
   } catch (_) {
     /* no journal yet */
   }
