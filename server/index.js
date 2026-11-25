@@ -15,6 +15,7 @@ const settings = require('./settings');
 const themes = require('./themes');
 const i18n = require('./i18n');
 const storage = require('./storage');
+const { IMAGE_RE, safeName, timestamp, toDto, lanAddresses } = require('./photos');
 
 const PORT = Number(process.env.PORT || 3000);
 const PHOTOS_DIR = path.resolve(process.env.PHOTOS_DIR || path.join(__dirname, '..', 'photos'));
@@ -31,7 +32,6 @@ const PRE_MESSAGE_SECONDS = clampInt(process.env.PRE_MESSAGE_SECONDS, 0, 10, 2);
 const LOOK_MESSAGE_SECONDS = clampInt(process.env.LOOK_MESSAGE_SECONDS, 0, 10, 2);
 const PUID = process.env.PUID ? Number(process.env.PUID) : null;
 const PGID = process.env.PGID ? Number(process.env.PGID) : null;
-const IMAGE_RE = /\.(jpe?g)$/i;
 
 // Normally prepared by docker/entrypoint.sh; a storage problem must not stop the server
 // (it is reported in /admin and on the tablet, and photos are refused).
@@ -121,12 +121,6 @@ live.on('state', ({ state: s, textKey }) => broadcast({ type: 'live', state: s, 
 /* ------------------------------------------------------------------ */
 /* Photos                                                              */
 /* ------------------------------------------------------------------ */
-function safeName(name) {
-  const base = path.basename(String(name || ''));
-  if (!IMAGE_RE.test(base) || base.startsWith('.')) return null;
-  return base;
-}
-
 async function listPhotos() {
   const entries = await fsp.readdir(PHOTOS_DIR, { withFileTypes: true });
   const photos = [];
@@ -141,17 +135,6 @@ async function listPhotos() {
   }
   photos.sort((a, b) => b.mtime - a.mtime);
   return photos.map(toDto);
-}
-
-function toDto(p) {
-  const v = Math.round(p.mtime);
-  return {
-    name: p.name,
-    date: new Date(p.mtime).toISOString(),
-    thumb: `/media/thumb/${encodeURIComponent(p.name)}?v=${v}`,
-    view: `/media/view/${encodeURIComponent(p.name)}?v=${v}`,
-    tv: `/media/tv/${encodeURIComponent(p.name)}?v=${v}`,
-  };
 }
 
 // thumb: gallery; view: tablet; tv: slideshow on a 4K screen
@@ -219,12 +202,6 @@ const state = { busy: false, phase: 'idle', camera: null, cameraError: null, foc
 function setPhase(phase, extra = {}) {
   state.phase = phase;
   broadcast({ type: 'phase', phase, ...extra });
-}
-
-function timestamp() {
-  const d = new Date();
-  const p = (n, l = 2) => String(n).padStart(l, '0');
-  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}_${p(d.getMilliseconds(), 3)}`;
 }
 
 const fail = (message, reason) => Object.assign(new Error(reason), { userMessage: message });
@@ -616,22 +593,6 @@ app.get('/api/camera', (_req, res) => {
 app.get('/api/languages', (_req, res) => res.json(i18n.list()));
 
 /* ---------- Server address for the tablet ---------- */
-// Private IPv4 addresses of the host (Wi-Fi / Ethernet), excluding Docker's internal interfaces.
-function lanAddresses() {
-  const forced = (process.env.HOST_IP || '').trim();
-  if (forced) return [{ ip: forced, iface: 'HOST_IP' }];
-  const out = [];
-  for (const [iface, list] of Object.entries(require('os').networkInterfaces())) {
-    if (/^(docker|br-|veth|virbr|lo)/.test(iface)) continue;
-    for (const a of list || []) {
-      if (a.family !== 'IPv4' || a.internal) continue;
-      if (!/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(a.address)) continue; // private addresses
-      out.push({ ip: a.address, iface });
-    }
-  }
-  // Wi-Fi first
-  return out.sort((x, y) => Number(/^w/.test(y.iface)) - Number(/^w/.test(x.iface)));
-}
 // QR code of the main address (to scan with the tablet)
 app.get('/api/network/qr.svg', async (_req, res) => {
   const main = lanAddresses()[0];

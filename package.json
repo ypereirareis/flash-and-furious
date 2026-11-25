@@ -6,7 +6,10 @@
   "license": "MIT",
   "main": "server/index.js",
   "scripts": {
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "test": "./scripts/test.sh",
+    "test:unit": "node --test 'tests/unit/**/*.test.js'",
+    "test:functional": "node --test --test-concurrency=1 tests/functional/*.test.js"
   },
   "dependencies": {
     "express": "^4.21.2",
