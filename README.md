@@ -56,7 +56,7 @@ PHOTOS_EXTERNAL=true
 | URL | For | Content |
 |---|---|---|
 | `http://<host-ip>:3000/` | guests (tablet) | preview, shutter, gallery: no settings (`/#gallery` opens the gallery directly) |
-| `http://<host-ip>:3000/admin` | the organiser | language, live view, mirror, theme, frame, AF/MF focus |
+| `http://<host-ip>:3000/admin` | the organiser | language, live view, mirror, theme, frame, AF/MF focus, event journal |
 | `http://<host-ip>:3000/slideshow` | a screen / TV | photos in a loop, 3 s each, crossfade and slow zoom; new photos are shown first (4K version, 3840 px) |
 
 `/admin` settings are saved in `config/settings.json` (kept across restarts) and applied immediately
@@ -69,6 +69,28 @@ The interface (tablet, slideshow, admin) is translated in English and French. Th
 (Display card); the default comes from `DEFAULT_LANG` (`fr` in `docker-compose.yml`).
 Texts live in `public/locales/<lang>.json`, shared by the server and the browser. To add a language, copy `en.json`
 to `<code>.json` and translate it: it shows up in `/admin` automatically after a rebuild.
+
+## Event journal
+
+The **Journal** button at the top of `/admin` opens what happened during the event, newest first, grouped by day:
+photos taken (with their frame and file name), photos that failed and why, camera plugged in, unplugged, asleep or
+used by another program, focus mode, storage blocked or available again, settings changed, start and stop.
+Older entries load as the list is scrolled down; new ones appear on top while it is open. Messages follow the
+language chosen in `/admin`.
+
+It is saved in `config/journal.jsonl`, so it survives a restart or a power cut. The technical details for
+troubleshooting stay in the Docker logs (`docker logs flash-and-furious`).
+
+The journal can neither slow the booth down nor fill the disk:
+- entries are written in memory, then to the file asynchronously, in batches (at most one write a second);
+- the file keeps the last 5,000 entries and at most 2 MB (`JOURNAL_MAX_ENTRIES`, `JOURNAL_MAX_BYTES`):
+  past that, it is rewritten with the newest entries;
+- texts are cut, so an entry stays small;
+- at most 120 entries a minute (`JOURNAL_MAX_PER_MINUTE`): beyond, entries are counted, and one entry says how many
+  were skipped;
+- the camera, polled every 4 seconds, only writes changes;
+- if the disk refuses to write (full, read-only), nothing breaks: writing pauses for a minute, the journal goes on
+  in memory.
 
 ## Live view (Live mode)
 
@@ -207,6 +229,7 @@ The admin page adapts by itself: help texts provided by the driver, sections hid
 | `TZ` | Europe/Paris | Time zone used to name files |
 | `PUID` / `PGID` | 1000 | Owner of the files created in the photos folder |
 | `PHOTOS_PATH`, `PHOTOS_CREATE`, `PHOTOS_EXTERNAL`, `STORAGE_MIN_FREE_MB` | see [Photos folder](#photos-folder) | Photos folder on the host |
+| `JOURNAL_MAX_ENTRIES`, `JOURNAL_MAX_BYTES`, `JOURNAL_MAX_PER_MINUTE` | 5000, 2097152, 120 | Limits of the [event journal](#event-journal) |
 
 ## The camera stops responding ("PTP Timeout")
 
@@ -240,13 +263,13 @@ Everything runs in Docker, in the app image (no Node needed on the host):
 
 - **Unit tests** (`tests/unit/`, Node's built-in `node:test`): frames (text fitting, transparent parts, colour,
   black & white, orientation, screen versions), settings, storage checks, translations, themes, gphoto2 drivers,
-  photo names and addresses (`server/photos.js`).
+  photo names and addresses (`server/photos.js`), event journal (limits on disk, in memory and per minute).
 - **Functional tests** (`tests/functional/`): each test file starts the real server with its own photos and
   config folders, and drives it like the tablet does (HTTP API and events). Covered: camera detection and
   problems (unplugged, used by another program, asleep), photos with and without frame, black & white,
   decorations, upright photo, RAW+JPEG, broken frame, photo refused while another is in progress, live view,
   the queue of full-size photos, storage problems, focus failure, request limit, power cut and clean stop
-  during processing. A timings table is printed at the end.
+  during processing, event journal. A timings table is printed at the end.
 - **Fake camera** (`tests/fake-camera/gphoto2`): answers like a Canon EOS 1000D; the tests switch it to
   "unplugged", "used by another program", "asleep", "focus not found" or "slow" while the server runs.
 - **`--real`**: the tests that need the fake camera (failure modes, special photos) are skipped. The
@@ -293,7 +316,8 @@ rebuilt when `package.json` or `package-lock.json` change.
 - `POST /api/focus`: one-off focus
 - `GET /api/photos`: photo list (most recent first)
 - `GET /api/live.mjpeg`: live stream (MJPEG), only available during a countdown in Live mode
-- `GET /api/events`: SSE stream (countdown, phases, new photo, errors)
+- `GET /api/events`: SSE stream (countdown, phases, new photo, errors, journal entries)
+- `GET /api/journal?limit=50&before=<id>`: event journal, newest first, in the UI language; `before` gives the next page
 - `/media/thumb/:name`, `/media/view/:name`, `/media/tv/:name`: thumbnail, preview (1920 px), slideshow (3840 px); no access to originals: they are retrieved on the host
 - `/locales/:lang.json`: UI texts
 
