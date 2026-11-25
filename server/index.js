@@ -15,6 +15,8 @@ const settings = require('./settings');
 const themes = require('./themes');
 const i18n = require('./i18n');
 const storage = require('./storage');
+const journal = require('./journal');
+let shuttingDown = false; // set by SIGTERM / SIGINT (clean stop)
 const { IMAGE_RE, safeName, timestamp, toDto, lanAddresses } = require('./photos');
 
 const PORT = Number(process.env.PORT || 3000);
@@ -45,6 +47,7 @@ for (const dir of [CACHE_DIR, ORIGINALS_DIR]) {
 }
 settings.load();
 chownSafe(settings.CONFIG_DIR);
+journal.load(settings.CONFIG_DIR);
 
 function clampInt(v, min, max, def) {
   const n = parseInt(v, 10);
@@ -98,8 +101,13 @@ let lastStorageProblem = null;
 function storageError({ probe = false } = {}) {
   const problem = storage.check(PHOTOS_DIR, settings.CONFIG_DIR, { probe });
   if (problem !== lastStorageProblem) {
-    if (problem) console.error(`[storage] photos blocked: ${problem} (${PHOTOS_DIR})`);
-    else if (lastStorageProblem) console.log('[storage] photos folder OK again');
+    if (problem) {
+      console.error(`[storage] photos blocked: ${problem} (${PHOTOS_DIR})`);
+      journal.add('error', 'storage', 'journal.storageBlocked', { reason: { key: `storage.${problem}` } });
+    } else if (lastStorageProblem) {
+      console.log('[storage] photos folder OK again');
+      journal.add('success', 'storage', 'journal.storageOk');
+    }
     lastStorageProblem = problem;
   }
   return problem ? { key: `storage.${problem}` } : null;
@@ -116,7 +124,31 @@ function broadcast(event) {
   for (const res of clients) res.write(data);
 }
 
-live.on('state', ({ state: s, textKey }) => broadcast({ type: 'live', state: s, message: textKey ? cameraText(textKey) : undefined }));
+live.on('state', ({ state: s, textKey }) => {
+  broadcast({ type: 'live', state: s, message: textKey ? cameraText(textKey) : undefined });
+  if (s === 'error') journal.add('warning', 'camera', 'journal.liveProblem', { reason: { camera: textKey } });
+});
+
+/* ------------------------------------------------------------------ */
+/* Event journal (/admin)                                              */
+/* ------------------------------------------------------------------ */
+/** Journal entry in the current UI language; a value can itself be a message ({ key } or { camera }). */
+function journalDto(e) {
+  const vars = Object.fromEntries(Object.entries(e.vars || {}).map(([k, v]) => [k, v && typeof v === 'object' ? translate(v) : v]));
+  return { id: e.id, at: e.at, level: e.level, category: e.category, message: tr(e.key, vars), detail: e.detail || null };
+}
+journal.onAdd((e) => broadcast({ type: 'journal', entry: journalDto(e) }));
+
+// Camera state as written in the journal: only changes are written (it is polled every 4 s)
+let journalCameraState = null;
+function journalCamera() {
+  if (shuttingDown) return; // a poll ending during the stop: not news
+  const now = JSON.stringify([state.camera && state.camera.model, state.cameraError]);
+  if (now === journalCameraState) return;
+  journalCameraState = now;
+  if (state.cameraError) journal.add('warning', 'camera', 'journal.cameraProblem', { reason: state.cameraError });
+  else if (state.camera) journal.add('success', 'camera', 'journal.cameraConnected', { model: state.camera.model });
+}
 
 /* ------------------------------------------------------------------ */
 /* Photos                                                              */
@@ -300,11 +332,14 @@ async function runShoot(delay, useLive, frame, { bw = false } = {}) {
     resized(jpeg, 'tv').catch(() => {});
     const photo = toDto({ name: jpeg, mtime });
     broadcast({ type: 'photo', photo });
+    const taken = frame ? (bw ? 'journal.photoFrameBw' : 'journal.photoFrame') : bw ? 'journal.photoBw' : 'journal.photo';
+    journal.add('success', 'photo', taken, frame ? { frame: frame.label } : {}, jpeg);
     setPhase('idle');
   } catch (err) {
     console.error('[shoot] error:', err.stderr || err.message);
     const m = err.userMessage || (err.textKey ? { camera: err.textKey } : { key: 'shoot.error' });
     broadcast({ type: 'error', message: translate(m) });
+    journal.add('error', 'photo', 'journal.shootFailed', { reason: m });
     setPhase('idle');
   } finally {
     state.busy = false;
@@ -351,6 +386,7 @@ async function processPhoto(frame, files, jpeg, { bw = false } = {}) {
     await fsp.copyFile(original, path.join(PHOTOS_DIR, jpeg)); // the photo stays visible, as is
     chownSafe(path.join(PHOTOS_DIR, jpeg));
     broadcast({ type: 'error', message: tr('shoot.retouchFailed') });
+    journal.add('warning', 'photo', 'journal.retouchFailed', {}, jpeg);
     return;
   }
   queueFullSize(job);
@@ -381,6 +417,7 @@ async function fullSize({ name, frame, bw, mtime }) {
     // the screen versions show the frame: they are made again from the photo as is
     await Promise.all(Object.keys(SIZES).map((k) => fsp.rm(path.join(CACHE_DIR, `${k}_${name}`), { force: true })));
     broadcast({ type: 'error', message: tr('shoot.retouchFailed') });
+    journal.add('warning', 'photo', 'journal.retouchFailed', {}, name);
   } finally {
     processing.delete(name);
   }
@@ -400,16 +437,19 @@ async function resumeProcessing() {
   } catch (_) {
     return;
   }
+  let resumed = 0;
   for (const f of files) {
     try {
       const job = JSON.parse(await fsp.readFile(path.join(CACHE_DIR, f), 'utf8'));
       if (!safeName(job.name) || `pending_${job.name}.json` !== f) throw new Error('invalid job');
       console.log(`[frame] ${job.name}: full size resumed`);
       queueFullSize(job);
+      resumed += 1;
     } catch (err) {
       console.error(`[frame] ${f}: cannot resume (${err.message})`);
     }
   }
+  if (resumed) journal.add('info', 'photo', 'journal.resumed', { count: resumed });
 }
 
 /**
@@ -424,6 +464,7 @@ async function probeCamera() {
     if (camera.capabilities.focusMode && p.focusMode !== state.focusMode) {
       state.focusMode = p.focusMode;
       console.log(`[focus] focus mode: ${p.raw} -> ${p.focusMode}`);
+      if (p.focusMode && !shuttingDown) journal.add('info', 'camera', p.focusMode === 'manual' ? 'journal.focusManual' : 'journal.focusAuto');
       broadcast({ type: 'focusMode', mode: p.focusMode });
     }
   } catch (err) {
@@ -448,7 +489,6 @@ const CAMERA_PROBE_MS = 15000;
 let polling = false;
 let lastProbe = 0;
 let probeRequested = false;
-let shuttingDown = false;
 async function pollCamera() {
   if (polling || shuttingDown || state.busy || live.running) return;
   polling = true;
@@ -462,6 +502,7 @@ async function pollCamera() {
   if (JSON.stringify([state.camera, error]) !== before) {
     broadcast({ type: 'camera', camera: state.camera, error: translate(error) });
   }
+  journalCamera();
 }
 setInterval(pollCamera, CAMERA_POLL_MS);
 
@@ -503,6 +544,7 @@ app.use((_req, res, next) => {
 // Limit per device on the routes that read files or compute images (photos, frame
 // previews): a device of the local network cannot keep the host busy. Generous for normal
 // use: the gallery loads its thumbnails as they scroll into view.
+const rateLimited = new Map(); // device -> last time written in the journal
 app.use(
   ['/api', '/media'],
   rateLimit({
@@ -510,7 +552,14 @@ app.use(
     limit: 600,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
-    handler: (_req, res) => res.status(429).json({ error: tr('status.tooManyRequests') }),
+    handler: (req, res) => {
+      // written once a minute at most per device
+      if (Date.now() - (rateLimited.get(req.ip) || 0) > 60 * 1000) {
+        rateLimited.set(req.ip, Date.now());
+        journal.add('warning', 'system', 'journal.rateLimited', { ip: req.ip });
+      }
+      res.status(429).json({ error: tr('status.tooManyRequests') });
+    },
   })
 );
 app.get('/diaporama', (_req, res) => res.redirect(301, '/slideshow')); // old address
@@ -578,12 +627,30 @@ app.put('/api/settings', async (req, res) => {
     if (b.frame && !(await frames.get(b.frame))) return res.status(400).json({ error: tr('settings.unknownFrame') });
     patch.frame = b.frame || null;
   }
+  const old = settings.get();
   await settings.update(patch, chownSafe);
+  await journalSettings(old, settings.get());
   const dto = await settingsDto();
   console.log(`[admin] settings: ${JSON.stringify(settings.get())}`);
   broadcast({ type: 'settings', settings: dto });
   res.json(dto);
 });
+
+/** Settings changed in /admin, one journal entry per change. */
+async function journalSettings(old, now) {
+  const add = (key, vars) => journal.add('info', 'settings', key, vars);
+  if (now.frame !== old.frame) {
+    const f = now.frame && (await frames.get(now.frame).catch(() => null));
+    if (f) add('journal.settingFrame', { value: frameLabel(f) });
+    else add('journal.settingNoFrame');
+  }
+  if (now.frameTitle !== old.frameTitle) add('journal.settingTitle', { value: now.frameTitle });
+  if (now.theme !== old.theme) add('journal.settingTheme', { value: { key: `themes.${now.theme}` } });
+  if (now.frameDeco !== old.frameDeco) add(now.frameDeco ? 'journal.settingDecoOn' : 'journal.settingDecoOff');
+  if (now.live !== old.live) add(now.live ? 'journal.settingLiveOn' : 'journal.settingLiveOff');
+  if (now.mirror !== old.mirror) add(now.mirror ? 'journal.settingMirrorOn' : 'journal.settingMirrorOff');
+  if (now.lang !== old.lang) add('journal.settingLang', { value: (i18n.list().find((l) => l.id === now.lang) || {}).label });
+}
 
 // Camera driver: capabilities and help texts in the UI language
 app.get('/api/camera', (_req, res) => {
@@ -645,6 +712,12 @@ app.get('/media/:kind(thumb|view|tv)/:name', async (req, res) => {
   }
 });
 
+// Event journal, newest first; ?before=<id> for the next page (older entries)
+app.get('/api/journal', (req, res) => {
+  const { entries, more } = journal.page({ before: req.query.before, limit: req.query.limit });
+  res.json({ entries: entries.map(journalDto), more });
+});
+
 app.get('/api/frames', async (_req, res) => {
   const list = await frames.list();
   res.json(list.map((f) => ({ id: f.id, label: frameLabel(f), preview: framePreviewUrl(f) })));
@@ -678,20 +751,25 @@ app.get('/api/events', (req, res) => {
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`Camera driver: ${camera.id} (${camera.label})`);
   console.log(`Flash & Furious ready on http://0.0.0.0:${PORT} — photos in ${PHOTOS_DIR}`);
+  journal.add('info', 'system', 'journal.started');
   storageError(); // logs a storage problem right away
   await resumeProcessing();
   await refreshCamera();
+  journalCamera();
   console.log(state.camera ? `Camera detected: ${state.camera.model} (${state.camera.port})` : `Camera: ${translate(state.cameraError)}`);
 });
 
 // Clean shutdown (docker stop / restart): stop monitoring, close live view and WAIT for
 // the current command to finish. Cutting the camera off mid-exchange can leave it stuck
 // (it then has to be switched off and on again).
+process.on('exit', () => journal.flushSync()); // also on a forced exit or an error during the stop
 for (const sig of ['SIGTERM', 'SIGINT']) {
   process.on(sig, async () => {
     if (shuttingDown) return;
     shuttingDown = true;
     console.log(`[server] ${sig} received: clean shutdown (live view + current command)…`);
+    if (processing.size) journal.add('info', 'system', 'journal.stoppingWait', { count: processing.size });
+    else journal.add('info', 'system', 'journal.stopping');
     const force = setTimeout(() => process.exit(0), 12000);
     try {
       await live.stop();
@@ -700,6 +778,7 @@ for (const sig of ['SIGTERM', 'SIGINT']) {
       // photos left unfinished are resumed at the next start (pending_*.json)
       if (processing.size) console.log(`[server] waiting for ${processing.size} photo(s) being processed…`);
       await processingQueue;
+      await journal.close(); // entries still waiting to be written
       console.log('[server] exiting.');
     } finally {
       clearTimeout(force);

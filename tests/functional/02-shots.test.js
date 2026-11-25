@@ -149,7 +149,8 @@ test('live view during the countdown, stopped for the capture', async () => {
   const shot = await done;
   await server.settings({ live: false });
   assert.deepEqual(shot.errors, []);
-  assert.ok(frames >= 3, `${frames} live frames received`);
+  // 1 s countdown in the tests: the real camera takes about that long to start its live view
+  assert.ok(frames >= (REAL ? 1 : 3), `${frames} live frames received`);
   const states = shot.events.filter((e) => e.type === 'live').map((e) => e.state);
   assert.deepEqual([states[0], states.at(-1)], ['starting', 'off']);
   const phases = shot.events.filter((e) => e.type === 'phase').map((e) => e.phase);

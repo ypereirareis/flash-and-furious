@@ -224,12 +224,111 @@ $('focusNowBtn').addEventListener('click', async () => {
   }
 });
 
+/* ---------- Event journal ---------- */
+// Newest entries first; older ones load as the list is scrolled down; new ones appear on top.
+const journalUi = { open: false, oldest: null, more: true, loading: false, ids: new Set(), lastDay: null };
+const CATEGORY_ICONS = { photo: '📸', camera: '📷', storage: '💾', settings: '⚙️', system: '🖥️' };
+
+const dayKey = (at) => new Date(at).toDateString();
+function dayLabel(at) {
+  const d = new Date(at);
+  const today = new Date();
+  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return t('journal.today');
+  if (d.toDateString() === yesterday.toDateString()) return t('journal.yesterday');
+  return d.toLocaleDateString(t('locale'), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+function dayItem(at) {
+  const li = Object.assign(document.createElement('li'), { className: 'journal-day', textContent: dayLabel(at) });
+  li.dataset.day = dayKey(at);
+  return li;
+}
+function entryItem(e) {
+  const li = document.createElement('li');
+  li.className = `journal-entry level-${e.level}`;
+  const time = document.createElement('time');
+  time.className = 'j-time';
+  time.dateTime = new Date(e.at).toISOString();
+  time.textContent = new Date(e.at).toLocaleTimeString(t('locale'), { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const icon = Object.assign(document.createElement('span'), { className: 'j-icon', textContent: CATEGORY_ICONS[e.category] || '•' });
+  icon.setAttribute('aria-hidden', 'true');
+  const text = Object.assign(document.createElement('div'), { className: 'j-text' });
+  text.append(Object.assign(document.createElement('span'), { className: 'j-msg', textContent: e.message }));
+  if (e.detail) text.append(Object.assign(document.createElement('small'), { className: 'j-detail', textContent: e.detail }));
+  li.append(time, icon, text);
+  return li;
+}
+function journalFoot() {
+  const foot = $('journalFoot');
+  if (journalUi.loading) foot.textContent = t('journal.loading');
+  else if (journalUi.more) foot.textContent = '';
+  else foot.textContent = journalUi.ids.size ? t('journal.end') : t('journal.empty');
+}
+async function loadJournal() {
+  if (journalUi.loading || !journalUi.more || !journalUi.open) return;
+  journalUi.loading = true;
+  journalFoot();
+  let page;
+  try {
+    const q = journalUi.oldest ? `&before=${journalUi.oldest}` : '';
+    const r = await fetch(`/api/journal?limit=50${q}`);
+    if (!r.ok) throw new Error(r.status);
+    page = await r.json();
+  } catch (_) {
+    Object.assign(journalUi, { loading: false, more: false });
+    $('journalFoot').textContent = t('journal.loadFailed');
+    return;
+  }
+  const list = $('journalList');
+  for (const e of page.entries) {
+    if (journalUi.ids.has(e.id)) continue;
+    journalUi.ids.add(e.id);
+    if (dayKey(e.at) !== journalUi.lastDay) {
+      journalUi.lastDay = dayKey(e.at);
+      list.append(dayItem(e.at));
+    }
+    list.append(entryItem(e));
+  }
+  if (page.entries.length) journalUi.oldest = page.entries[page.entries.length - 1].id;
+  Object.assign(journalUi, { more: page.more, loading: false });
+  journalFoot();
+  // list shorter than the window: the bottom is still visible, load the next page
+  const box = $('journalScroll');
+  if (journalUi.more && box.scrollHeight <= box.clientHeight + 200) loadJournal();
+}
+function addJournalEntry(e) {
+  if (!journalUi.open || journalUi.ids.has(e.id)) return;
+  journalUi.ids.add(e.id);
+  const list = $('journalList');
+  const first = list.firstElementChild;
+  const item = entryItem(e);
+  if (first && first.dataset.day === dayKey(e.at)) first.after(item);
+  else list.prepend(dayItem(e.at), item);
+  if (!journalUi.lastDay) journalUi.lastDay = dayKey(e.at);
+  journalFoot();
+}
+function openJournal() {
+  Object.assign(journalUi, { open: true, oldest: null, more: true, loading: false, ids: new Set(), lastDay: null });
+  $('journalList').replaceChildren();
+  $('journalDialog').showModal();
+  $('journalScroll').scrollTop = 0;
+  loadJournal();
+}
+$('journalBtn').addEventListener('click', openJournal);
+$('journalClose').addEventListener('click', () => $('journalDialog').close());
+$('journalDialog').addEventListener('close', () => { journalUi.open = false; });
+// a click outside the window (on the backdrop) closes it
+$('journalDialog').addEventListener('click', (e) => { if (e.target === $('journalDialog')) $('journalDialog').close(); });
+new IntersectionObserver((seen) => { if (seen.some((x) => x.isIntersecting)) loadJournal(); }, { root: $('journalScroll'), rootMargin: '300px' })
+  .observe($('journalFoot'));
+
 /* ---------- Server events ---------- */
 function connectEvents() {
   const es = new EventSource('/api/events');
   es.onmessage = (msg) => {
     const ev = JSON.parse(msg.data);
     if (ev.type === 'settings') applySettings(ev.settings);
+    else if (ev.type === 'journal') addJournalEntry(ev.entry);
     else if (ev.type === 'focusMode') setFocusMode(ev.mode);
     else if (ev.type === 'camera') refreshStatus();
     else if (ev.type === 'phase') {

@@ -16,6 +16,10 @@
   <header class="topbar">
     <div class="status" id="status"><span class="dot"></span><span id="statusText" data-i18n="status.connecting">Connecting…</span></div>
     <h1 class="admin-title" data-i18n="app.admin">Administration</h1>
+    <button type="button" class="open-booth journal-btn" id="journalBtn">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h10l3 3v15H6z"/><path d="M9 9h7M9 13h7M9 17h4"/></svg>
+      <span data-i18n="journal.open">Journal</span>
+    </button>
     <a class="open-booth" href="/" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
       <span data-i18n="admin.openBooth">Open Flash &amp; Furious</span>
@@ -105,6 +109,20 @@
       <div id="frameGrid" class="frame-grid"></div>
     </section>
   </main>
+
+  <dialog id="journalDialog" class="journal-dialog" aria-labelledby="journalTitle">
+    <header class="journal-head">
+      <div>
+        <h2 id="journalTitle" data-i18n="journal.title">Event journal</h2>
+        <p class="hint" data-i18n="journal.hint"></p>
+      </div>
+      <button type="button" id="journalClose" class="journal-close" data-i18n-attr="aria-label:journal.close;title:journal.close">✕</button>
+    </header>
+    <div class="journal-scroll" id="journalScroll">
+      <ol class="journal-list" id="journalList"></ol>
+      <p class="journal-foot" id="journalFoot"></p>
+    </div>
+  </dialog>
 
   <div id="toast" class="toast" hidden></div>
   <script src="i18n.js"></script>
