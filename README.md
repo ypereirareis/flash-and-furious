@@ -226,6 +226,34 @@ Only updates compatible with the `package.json` ranges are applied (e.g. `^4.21.
 If the rebuild fails or the app stops responding, the previous versions are restored and restarted.
 To move to a major version (e.g. express 5), change the version in `package.json`, then run the script.
 
+## Tests
+
+Everything runs in Docker, in the app image (no Node needed on the host):
+
+```bash
+./scripts/test.sh                       # unit tests, then functional tests with the fake camera
+./scripts/test.sh unit                  # unit tests only (a few seconds)
+./scripts/test.sh functional            # functional tests, fake camera (about 1 min)
+./scripts/test.sh functional --real     # functional tests with the camera plugged in: it fires about 12 times
+./scripts/test.sh functional --only queue --keep   # one test file; keep photos, server logs and timings
+```
+
+- **Unit tests** (`tests/unit/`, Node's built-in `node:test`): frames (text fitting, transparent parts, colour,
+  black & white, orientation, screen versions), settings, storage checks, translations, themes, gphoto2 drivers,
+  photo names and addresses (`server/photos.js`).
+- **Functional tests** (`tests/functional/`): each test file starts the real server with its own photos and
+  config folders, and drives it like the tablet does (HTTP API and events). Covered: camera detection and
+  problems (unplugged, used by another program, asleep), photos with and without frame, black & white,
+  decorations, upright photo, RAW+JPEG, broken frame, photo refused while another is in progress, live view,
+  the queue of full-size photos, storage problems, focus failure, request limit, power cut and clean stop
+  during processing. A timings table is printed at the end.
+- **Fake camera** (`tests/fake-camera/gphoto2`): answers like a Canon EOS 1000D; the tests switch it to
+  "unplugged", "used by another program", "asleep", "focus not found" or "slow" while the server runs.
+- **`--real`**: the tests that need the fake camera (failure modes, special photos) are skipped. The
+  `flash-and-furious` container is stopped during the tests (only one program can use the camera), then
+  started again; the desktop automount is released if needed. Your photos and settings are not touched:
+  the tests use temporary folders.
+
 ## Contributing
 
 Commit messages and pull request titles follow [Conventional Commits](https://www.conventionalcommits.org):
@@ -245,6 +273,7 @@ is only built on GitHub to be tested and scanned, then thrown away.
 | Check | What it does | Run it locally |
 |---|---|---|
 | Lint | JavaScript syntax, translations (same keys in every language, every used key exists), ShellCheck, hadolint | `node scripts/check-i18n.js` |
+| Unit tests | `tests/unit/` in the app image (the functional tests are run by hand: too long for every pull request) | `./scripts/test.sh unit` |
 | Docker build & smoke test | builds the image, starts it without a camera and checks pages, API, translations, frame rendering and cache headers | `./scripts/smoke-test.sh` (against a running instance) |
 | Trivy | fails on fixable HIGH / CRITICAL vulnerabilities in the image (also runs every Monday) | see `ci.yml` |
 | CodeQL analysis | static security analysis of the JavaScript code (results in Security > Code scanning) | |

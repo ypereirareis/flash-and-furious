@@ -33,13 +33,26 @@ jobs:
         with:
           persist-credentials: false
       - name: JavaScript syntax
-        run: find server public scripts -name '*.js' -print0 | xargs -0 -n1 node --check
+        run: find server public scripts tests -name '*.js' -print0 | xargs -0 -n1 node --check
       - name: Translations
         run: node scripts/check-i18n.js
       - name: Shell scripts (ShellCheck)
-        run: shellcheck scripts/*.sh docker/*.sh .githooks/commit-msg
+        run: shellcheck scripts/*.sh docker/*.sh .githooks/commit-msg tests/fake-camera/gphoto2
       - name: Dockerfile (hadolint)
         run: docker run --rm -i "$HADOLINT_IMAGE" hadolint - < Dockerfile
+
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # in the app image (same Node, sharp and libvips as in production); the functional tests
+      # take a few minutes and are run by hand: ./scripts/test.sh functional [--real]
+      - name: Unit tests
+        run: ./scripts/test.sh unit
 
   smoke:
     name: Docker build & smoke test

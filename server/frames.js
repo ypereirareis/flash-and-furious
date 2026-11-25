@@ -244,4 +244,8 @@ async function apply(frame, src, dst, { bw = false, maxSize = null, quality = 92
     .toFile(dst);
 }
 
-module.exports = { list, get, preview, apply, FRAMES_DIR };
+module.exports = {
+  list, get, preview, apply, FRAMES_DIR,
+  // internals, exported for the unit tests
+  fitTexts, opaqueParts, labelFromFile, today,
+};

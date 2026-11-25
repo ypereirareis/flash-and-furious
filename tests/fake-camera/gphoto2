@@ -1,0 +1,72 @@
+#!/bin/sh
+# Fake gphoto2 for the functional tests (GPHOTO_BIN=/app/tests/fake-camera/gphoto2).
+# Answers the few commands the camera drivers use, like a Canon EOS 1000D.
+# Driven at runtime by files in $FAKE_CAMERA_DIR (written by the tests):
+#   mode   ok (default) | absent | claimed | unresponsive | nofocus | slow
+#   photo  JPEG file delivered by each capture
+#   raw    if present, a capture also delivers a .cr2 file (RAW+JPEG)
+#   focus  focus mode read on the camera (default "One Shot"; "Manual" = MF)
+# Every call is appended to $FAKE_CAMERA_DIR/calls.log.
+set -u
+DIR=${FAKE_CAMERA_DIR:-/tmp/fake-camera}
+mkdir -p "$DIR"
+MODE=$(cat "$DIR/mode" 2>/dev/null || echo ok)
+echo "$*" >> "$DIR/calls.log"
+
+claimed() { echo "*** Error (-53: 'Could not claim the USB device') ***" >&2; exit 1; }
+unresponsive() { echo "*** Error (-7: 'I/O problem') ***" >&2; exit 1; }
+talk() {
+  case "$MODE" in
+    absent) echo "*** Error: No camera found. ***" >&2; exit 1 ;;
+    claimed) claimed ;;
+    unresponsive) unresponsive ;;
+  esac
+}
+
+case "${1:-}" in
+  --auto-detect)
+    printf 'Model                          Port\n----------------------------------------------------------\n'
+    [ "$MODE" = absent ] || printf 'Canon EOS 1000D                usb:001,004\n'
+    ;;
+  --get-config)
+    talk
+    printf 'Label: Focus Mode\nReadonly: 0\nType: RADIO\nCurrent: %s\n' "$(cat "$DIR/focus" 2>/dev/null || echo 'One Shot')"
+    ;;
+  --summary)
+    talk
+    echo "Camera summary: Canon EOS 1000D"
+    ;;
+  --set-config)
+    talk
+    ;;
+  --capture-image-and-download)
+    talk
+    # arguments: --capture-image-and-download --keep --force-overwrite --filename <dir>/<name>.%C
+    target=$5
+    [ "$MODE" = slow ] && sleep 3
+    if [ "$MODE" = nofocus ]; then
+      # the camera did not fire (focus not found): no file, no error
+      echo "New file is in location /capt0000.jpg on the camera"
+      exit 0
+    fi
+    jpg=$(printf '%s' "$target" | sed 's/%C$/jpg/')
+    cp "$(cat "$DIR/photo")" "$jpg"
+    echo "Saving file as $jpg"
+    if [ -e "$DIR/raw" ]; then
+      cr2=$(printf '%s' "$target" | sed 's/%C$/cr2/')
+      printf 'fake raw data' > "$cr2"
+      echo "Saving file as $cr2"
+    fi
+    ;;
+  --capture-movie)
+    talk
+    # live view: one JPEG after the other on stdout, until SIGINT
+    trap 'exit 0' INT TERM
+    frame="$DIR/live.jpg"
+    while :; do cat "$frame"; sleep 0.1; done
+    ;;
+  *)
+    echo "fake gphoto2: unsupported command: $*" >&2
+    exit 1
+    ;;
+esac
