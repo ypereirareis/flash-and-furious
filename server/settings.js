@@ -22,6 +22,10 @@ const DEFAULTS = {
   theme: themes.DEFAULT_THEME, // UI colour theme (see themes.js)
   frameDeco: false, // also add the theme's SVG decorations to framed photos
   lang: i18n.isValid(ENV_LANG) ? ENV_LANG : i18n.FALLBACK, // UI language (public/locales/)
+  greenScreen: false, // replace the green cloth behind the guests with a background
+  background: null, // id of the background (backgrounds/ folder)
+  greenTolerance: 50, // 0-100: higher removes more green (50 = as calibrated)
+  greenKey: null, // calibration { lo, hi, coverage, at } (null = default thresholds)
 };
 const MAX_TITLE = 60;
 
@@ -52,7 +56,21 @@ function sanitize(s) {
     theme: themes.isValid(theme) ? theme : DEFAULTS.theme,
     frameDeco: Boolean(s.frameDeco),
     lang: i18n.isValid(s.lang) ? s.lang : DEFAULTS.lang,
+    greenScreen: Boolean(s.greenScreen),
+    background: typeof s.background === 'string' && /^[\w.-]+$/.test(s.background) ? s.background : null,
+    greenTolerance: Number.isFinite(Number(s.greenTolerance)) && s.greenTolerance !== null && s.greenTolerance !== ''
+      ? Math.round(Math.min(100, Math.max(0, Number(s.greenTolerance))))
+      : DEFAULTS.greenTolerance,
+    greenKey: validKey(s.greenKey),
   };
+}
+
+/** Calibration result, or null if missing or not usable. */
+function validKey(k) {
+  if (!k || typeof k !== 'object') return null;
+  const n = (v) => Number.isFinite(v) && v >= 0 && v <= 255;
+  if (!n(k.lo) || !n(k.hi) || k.lo >= k.hi) return null;
+  return { lo: k.lo, hi: k.hi, coverage: Number.isFinite(k.coverage) ? k.coverage : null, at: Number.isFinite(k.at) ? k.at : null };
 }
 
 function get() {

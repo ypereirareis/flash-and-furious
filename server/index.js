@@ -11,6 +11,7 @@ const QRCode = require('qrcode');
 const camera = require('./cameras'); // camera driver (CAMERA_DRIVER)
 const live = require('./live');
 const frames = require('./frames');
+const greenscreen = require('./greenscreen');
 const settings = require('./settings');
 const themes = require('./themes');
 const i18n = require('./i18n');
@@ -227,6 +228,29 @@ function frameLabel(f) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Green screen                                                        */
+/* ------------------------------------------------------------------ */
+// Small copy of the calibration photo: previews of the result in /admin
+const GREEN_SAMPLE = path.join(settings.CONFIG_DIR, 'greenscreen-sample.jpg');
+function backgroundLabel(b) {
+  const key = `backgrounds.${b.id}`;
+  return i18n.has(lang(), key) ? tr(key) : b.label;
+}
+const backgroundThumbUrl = (b) => `/api/backgrounds/${encodeURIComponent(b.id)}.jpg?v=${Math.round(b.mtime)}`;
+/** The chosen background, or the first one when none is chosen yet (null if the folder is empty). */
+async function currentBackground(conf = settings.get()) {
+  const chosen = await greenscreen.get(conf.background).catch(() => null);
+  return chosen || (await greenscreen.list().catch(() => []))[0] || null;
+}
+/** Everything the green screen needs for a photo, frozen at the time of the shot (or null). */
+async function currentGreen(conf = settings.get(), { evenOff = false } = {}) {
+  if (!conf.greenScreen && !evenOff) return null;
+  const bg = await currentBackground(conf);
+  if (!bg) return null;
+  return { background: { id: bg.id, label: backgroundLabel(bg), file: bg.file, mtime: bg.mtime }, key: conf.greenKey, tolerance: conf.greenTolerance };
+}
+
+/* ------------------------------------------------------------------ */
 /* Shooting                                                            */
 /* ------------------------------------------------------------------ */
 const state = { busy: false, phase: 'idle', camera: null, cameraError: null, focusMode: null };
@@ -238,7 +262,7 @@ function setPhase(phase, extra = {}) {
 
 const fail = (message, reason) => Object.assign(new Error(reason), { userMessage: message });
 
-async function runShoot(delay, useLive, frame, { bw = false } = {}) {
+async function runShoot(delay, useLive, frame, { bw = false, green = null } = {}) {
   state.busy = true;
   const baseName = `flash-and-furious_${timestamp()}`;
   let focusJob = null;
@@ -323,7 +347,7 @@ async function runShoot(delay, useLive, frame, { bw = false } = {}) {
     console.log(`[shoot] ${files.join(', ') || 'no file'} in ${Date.now() - before} ms`);
 
     if (!jpeg) throw fail({ key: files.length ? 'shoot.noJpeg' : 'shoot.noFiles' }, 'no jpeg');
-    if (frame || bw) await processPhoto(frame, files, jpeg, { bw });
+    if (frame || bw || green) await processPhoto(frame, files, jpeg, { bw, green });
     const job = processing.get(jpeg);
     const mtime = job ? job.mtime : (await fsp.stat(path.join(PHOTOS_DIR, jpeg))).mtimeMs;
     // Pre-generate the screen versions: the tablet one is awaited, the 4K one (TV)
@@ -332,8 +356,9 @@ async function runShoot(delay, useLive, frame, { bw = false } = {}) {
     resized(jpeg, 'tv').catch(() => {});
     const photo = toDto({ name: jpeg, mtime });
     broadcast({ type: 'photo', photo });
-    const taken = frame ? (bw ? 'journal.photoFrameBw' : 'journal.photoFrame') : bw ? 'journal.photoBw' : 'journal.photo';
-    journal.add('success', 'photo', taken, frame ? { frame: frame.label } : {}, jpeg);
+    const taken = `journal.photo${green ? 'Green' : ''}${frame ? 'Frame' : ''}${bw ? 'Bw' : ''}`;
+    const vars = { ...(frame ? { frame: frame.label } : {}), ...(green ? { background: green.background.label } : {}) };
+    journal.add('success', 'photo', taken, vars, jpeg);
     setPhase('idle');
   } catch (err) {
     console.error('[shoot] error:', err.stderr || err.message);
@@ -365,16 +390,16 @@ const jobFile = (name) => path.join(CACHE_DIR, `pending_${name}.json`);
  * Frame and/or black & white: the original files (JPEG, RAW; in colour, without frame)
  * move to photos/originals/ and the processed version takes the photo's name in photos/.
  */
-async function processPhoto(frame, files, jpeg, { bw = false } = {}) {
-  const what = [frame && `frame "${frame.label}"`, bw && 'black & white'].filter(Boolean).join(' + ');
-  setPhase('framing', { frame: frame ? frame.label : null, bw });
+async function processPhoto(frame, files, jpeg, { bw = false, green = null } = {}) {
+  const what = [green && `background "${green.background.label}"`, frame && `frame "${frame.label}"`, bw && 'black & white'].filter(Boolean).join(' + ');
+  setPhase('framing', { frame: frame ? frame.label : null, bw, green: Boolean(green) });
   const t = Date.now();
   for (const f of files) await fsp.rename(path.join(PHOTOS_DIR, f), path.join(ORIGINALS_DIR, f));
   const original = path.join(ORIGINALS_DIR, jpeg);
-  const job = { name: jpeg, frame, bw, mtime: Date.now() };
+  const job = { name: jpeg, frame, bw, green, mtime: Date.now() };
   try {
     const tmp = `${screenFile(jpeg)}.tmp`;
-    await frames.apply(frame, original, tmp, { bw, maxSize: SIZES.view, quality: QUALITY.view });
+    await frames.apply(frame, original, tmp, { bw, green, maxSize: SIZES.view, quality: QUALITY.view });
     await fsp.rename(tmp, screenFile(jpeg));
     chownSafe(screenFile(jpeg));
     await fsp.writeFile(jobFile(jpeg), JSON.stringify(job));
@@ -401,13 +426,13 @@ function queueFullSize(job) {
 }
 
 /** Full-size version of a queued photo, written to photos/ once complete. */
-async function fullSize({ name, frame, bw, mtime }) {
+async function fullSize({ name, frame, bw, green = null, mtime }) {
   const original = path.join(ORIGINALS_DIR, name);
   const target = path.join(PHOTOS_DIR, name);
   const tmp = path.join(PHOTOS_DIR, `.${name}.tmp`); // hidden: not listed while being written
   const t = Date.now();
   try {
-    await frames.apply(frame, original, tmp, { bw });
+    await frames.apply(frame, original, tmp, { bw, green });
     await fsp.rename(tmp, target);
     console.log(`[frame] ${name}: full size in ${Date.now() - t} ms`);
   } catch (err) {
@@ -592,7 +617,8 @@ app.post('/api/shoot', async (req, res) => {
   const frame = found ? { ...found, label: frameLabel(found), ...frameOptions(conf) } : null;
   const useLive = conf.live;
   const bw = Boolean(req.body && req.body.bw); // chosen by the guests on the tablet
-  runShoot(delay, useLive, frame, { bw }); // asynchronous: progress is sent through /api/events
+  const green = await currentGreen(conf);
+  runShoot(delay, useLive, frame, { bw, green }); // asynchronous: progress is sent through /api/events
   res.status(202).json({ ok: true, delay });
 });
 
@@ -600,9 +626,18 @@ app.post('/api/shoot', async (req, res) => {
 async function settingsDto() {
   const conf = settings.get();
   const frame = await frames.get(conf.frame).catch(() => null);
+  const bg = await currentBackground(conf);
+  const key = conf.greenKey;
+  // preview of the calibration photo with the current background and tolerance
+  const sample = fs.existsSync(GREEN_SAMPLE) && bg
+    ? `/api/greenscreen/preview.jpg?v=${[key && key.at, bg.id, Math.round(bg.mtime), conf.greenTolerance].join('-')}`
+    : null;
   return {
     ...conf,
     frame: frame ? { id: frame.id, label: frameLabel(frame), preview: framePreviewUrl(frame) } : null,
+    background: bg ? { id: bg.id, label: backgroundLabel(bg), preview: backgroundThumbUrl(bg) } : null,
+    greenKey: key ? { coverage: key.coverage, at: key.at } : null,
+    greenPreview: sample,
   };
 }
 
@@ -627,6 +662,16 @@ app.put('/api/settings', async (req, res) => {
     if (b.frame && !(await frames.get(b.frame))) return res.status(400).json({ error: tr('settings.unknownFrame') });
     patch.frame = b.frame || null;
   }
+  if ('greenScreen' in b) patch.greenScreen = Boolean(b.greenScreen);
+  if ('background' in b) {
+    if (!(await greenscreen.get(b.background))) return res.status(400).json({ error: tr('settings.unknownBackground') });
+    patch.background = b.background;
+  }
+  if ('greenTolerance' in b) {
+    const n = Number(b.greenTolerance);
+    if (!Number.isFinite(n) || n < 0 || n > 100) return res.status(400).json({ error: tr('settings.badTolerance') });
+    patch.greenTolerance = Math.round(n);
+  }
   const old = settings.get();
   await settings.update(patch, chownSafe);
   await journalSettings(old, settings.get());
@@ -650,6 +695,12 @@ async function journalSettings(old, now) {
   if (now.live !== old.live) add(now.live ? 'journal.settingLiveOn' : 'journal.settingLiveOff');
   if (now.mirror !== old.mirror) add(now.mirror ? 'journal.settingMirrorOn' : 'journal.settingMirrorOff');
   if (now.lang !== old.lang) add('journal.settingLang', { value: (i18n.list().find((l) => l.id === now.lang) || {}).label });
+  if (now.greenScreen !== old.greenScreen) add(now.greenScreen ? 'journal.settingGreenOn' : 'journal.settingGreenOff');
+  if (now.background !== old.background) {
+    const b = await greenscreen.get(now.background).catch(() => null);
+    if (b) add('journal.settingBackground', { value: backgroundLabel(b) });
+  }
+  if (now.greenTolerance !== old.greenTolerance) add('journal.settingTolerance', { value: now.greenTolerance });
 }
 
 // Camera driver: capabilities and help texts in the UI language
@@ -731,6 +782,87 @@ app.get('/api/frames/:id.png', async (req, res) => {
   } catch (err) {
     console.error('[frame] preview:', err.message);
     res.sendStatus(500);
+  }
+});
+
+/* ---------- Green screen ---------- */
+app.get('/api/backgrounds', async (_req, res) => {
+  const list = await greenscreen.list();
+  res.json(list.map((b) => ({ id: b.id, label: backgroundLabel(b), preview: backgroundThumbUrl(b) })));
+});
+
+app.get('/api/backgrounds/:id.jpg', async (req, res) => {
+  const bg = await greenscreen.get(req.params.id);
+  if (!bg) return res.sendStatus(404);
+  try {
+    res.type('jpeg').send(await greenscreen.thumbnail(bg));
+  } catch (err) {
+    console.error('[green] background preview:', err.message);
+    res.sendStatus(500);
+  }
+});
+
+// The calibration photo with its green replaced by the current background and tolerance
+app.get('/api/greenscreen/preview.jpg', async (_req, res) => {
+  const green = await currentGreen(settings.get(), { evenOff: true });
+  if (!green || !fs.existsSync(GREEN_SAMPLE)) return res.sendStatus(404);
+  try {
+    res.type('jpeg').send(await greenscreen.preview(GREEN_SAMPLE, green));
+  } catch (err) {
+    console.error('[green] preview:', err.message);
+    res.sendStatus(500);
+  }
+});
+
+/**
+ * Calibration: takes a photo of the green cloth (people may stand in front of it) and
+ * measures its green. Not added to the gallery.
+ */
+app.post('/api/greenscreen/calibrate', async (_req, res) => {
+  if (state.busy) return res.status(409).json({ error: tr('shoot.busy') });
+  const storageProblem = storageError({ probe: true });
+  if (storageProblem) return res.status(503).json({ error: translate(storageProblem) });
+  if (!state.camera || state.cameraError) return res.status(503).json({ error: translate(state.cameraError) || tr('status.noCamera') });
+  state.busy = true;
+  const dir = path.join(CACHE_DIR, `calibration-${Date.now()}`);
+  const t = Date.now();
+  try {
+    await fsp.mkdir(dir, { recursive: true });
+    await refreshFocusMode();
+    const manual = state.focusMode === 'manual';
+    await live.stop();
+    if (!manual) await camera.autofocus();
+    const jpegIn = async () => (await fsp.readdir(dir)).find((f) => IMAGE_RE.test(f));
+    await camera.capture(dir, 'calibration');
+    let photo = await jpegIn();
+    if (!photo && camera.shouldRetryWithoutFile({ manual })) {
+      await camera.autofocus();
+      await camera.capture(dir, 'calibration');
+      photo = await jpegIn();
+    }
+    if (!photo) throw fail({ key: 'greenscreen.noPhoto' }, 'no file');
+    let result;
+    try {
+      result = await greenscreen.calibrate(path.join(dir, photo), GREEN_SAMPLE);
+    } catch (err) {
+      if (err.code !== 'notGreen') throw err;
+      throw fail({ key: 'greenscreen.notGreen', vars: { coverage: Math.round(err.coverage * 100) } }, 'not green');
+    }
+    chownSafe(GREEN_SAMPLE);
+    await settings.update({ greenKey: { ...result, at: Date.now() } }, chownSafe);
+    console.log(`[green] calibrated in ${Date.now() - t} ms: ${JSON.stringify(result)}`);
+    journal.add('success', 'settings', 'journal.greenCalibrated', { coverage: result.coverage });
+    const dto = await settingsDto();
+    broadcast({ type: 'settings', settings: dto });
+    res.json(dto);
+  } catch (err) {
+    console.error('[green] calibration failed:', err.stderr || err.message);
+    const m = err.userMessage || (err.textKey ? { camera: err.textKey } : { key: 'greenscreen.failed' });
+    journal.add('error', 'settings', 'journal.greenCalibrationFailed', { reason: m });
+    res.status(err.message === 'not green' ? 422 : 500).json({ error: translate(m) });
+  } finally {
+    state.busy = false;
+    fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
   }
 });
 

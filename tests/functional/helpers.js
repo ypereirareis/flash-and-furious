@@ -69,7 +69,29 @@ async function fixture(name, width, height, { orientation } = {}) {
   fs.renameSync(`${file}.tmp`, file);
   return file;
 }
+/**
+ * Green screen test photo: green cloth, a little darker at the bottom, with a skin-coloured
+ * "person" in the middle (40-60 % of the width, from 25 % of the height), light noise.
+ */
+async function greenFixture(name, width, height) {
+  const file = path.join(FIXTURES, name);
+  if (fs.existsSync(file)) return file;
+  fs.mkdirSync(FIXTURES, { recursive: true });
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+    <defs><linearGradient id="l" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2cb44a"/><stop offset="1" stop-color="#249a3e"/></linearGradient></defs>
+    <rect width="100%" height="100%" fill="url(#l)"/>
+    <rect x="40%" y="25%" width="20%" height="75%" rx="${Math.round(width / 40)}" fill="#e1af91"/></svg>`;
+  const noise = await sharp({ create: { width, height, channels: 3, noise: { type: 'gaussian', mean: 128, sigma: 8 } } })
+    .png()
+    .toBuffer();
+  await sharp(await sharp(Buffer.from(svg)).composite([{ input: noise, blend: 'soft-light' }]).png().toBuffer())
+    .jpeg({ quality: 92 })
+    .toFile(`${file}.tmp`);
+  fs.renameSync(`${file}.tmp`, file);
+  return file;
+}
 const photos = {
+  green: () => greenFixture('green.jpg', 3888, 2592),
   p10: () => fixture('10mp.jpg', 3888, 2592), // Canon EOS 1000D
   p24: () => fixture('24mp.jpg', 6000, 4000),
   rotated: () => fixture('rotated.jpg', 3888, 2592, { orientation: 6 }), // camera held upright

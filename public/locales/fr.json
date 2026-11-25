@@ -35,7 +35,8 @@
     "focusing": "Mise au point…",
     "addingFrame": "Ajout du cadre…",
     "applyingBw": "Passage en noir et blanc…",
-    "retrying": "Mise au point difficile, on réessaie…"
+    "retrying": "Mise au point difficile, on réessaie…",
+    "applyingBackground": "Ajout du décor…"
   },
   "slideshow": {
     "newPhoto": "Nouvelle photo !",
@@ -83,7 +84,22 @@
     "frameTextHint": "Le même texte pour tous les cadres. La date du jour s'ajoute toute seule sur les cadres qui l'affichent.",
     "framesHint": "Ajoutez vos propres cadres (PNG transparent ou SVG, format 3:2) dans le dossier <code>frames/</code> du projet.",
     "noFrame": "Sans cadre",
-    "photoOnly": "Photo seule"
+    "photoOnly": "Photo seule",
+    "green": "Fond vert",
+    "greenHint": "Les invités posent devant une toile verte : le vert est remplacé par le décor choisi. Éclairez la toile uniformément, placez les personnes à 1 ou 2 m devant, et évitez les vêtements verts.",
+    "greenToggle": "Remplacer la toile verte",
+    "greenToggleHint": "Appliqué à toutes les photos, avec ou sans cadre.",
+    "greenCalibrate": "Calibrer",
+    "greenCalibrating": "Photo de calibrage en cours…",
+    "greenCalibrateHint": "Prend une photo (pas ajoutée à la galerie) pour mesurer le vert exact de votre toile sous vos éclairages. Quelqu'un peut se tenir devant. Recalibrez si l'éclairage change.",
+    "greenCalibrated": "Calibré le {date}.",
+    "greenNotCalibrated": "Pas encore calibré : réglages par défaut pour une toile verte classique.",
+    "greenTolerance": "Tolérance",
+    "greenToleranceHint": "Augmentez-la si du vert reste autour des personnes ; diminuez-la si des parties des personnes disparaissent.",
+    "greenPreviewAlt": "Photo de calibrage avec le décor",
+    "greenBackgrounds": "Décor",
+    "backgroundsHint": "Ajoutez vos propres décors (JPEG, PNG ou SVG, format 3:2) dans le dossier <code>backgrounds/</code> du projet.",
+    "greenNoBackground": "Aucun décor dans le dossier backgrounds/."
   },
   "shoot": {
     "preMessage": "Ne bougez pas avant le flash !!",
@@ -98,7 +114,9 @@
   "settings": {
     "unknownTheme": "Thème inconnu.",
     "unknownFrame": "Cadre inconnu.",
-    "unknownLang": "Langue inconnue."
+    "unknownLang": "Langue inconnue.",
+    "unknownBackground": "Décor inconnu.",
+    "badTolerance": "La tolérance doit être comprise entre 0 et 100."
   },
   "camera": {
     "notDetected": "Aucun appareil détecté. Vérifiez le câble USB et que l'appareil est allumé.",
@@ -201,6 +219,27 @@
     "settingMirrorOn": "Effet miroir : activé",
     "settingMirrorOff": "Effet miroir : désactivé",
     "settingLang": "Langue : {value}",
-    "skipped": "{count} entrées du journal ignorées (trop nombreuses en une minute)"
+    "skipped": "{count} entrées du journal ignorées (trop nombreuses en une minute)",
+    "photoGreen": "Photo prise sur le décor « {background} »",
+    "photoGreenBw": "Photo prise en noir et blanc sur le décor « {background} »",
+    "photoGreenFrame": "Photo prise sur le décor « {background} » avec le cadre « {frame} »",
+    "photoGreenFrameBw": "Photo prise en noir et blanc sur le décor « {background} » avec le cadre « {frame} »",
+    "settingGreenOn": "Fond vert : activé",
+    "settingGreenOff": "Fond vert : désactivé",
+    "settingBackground": "Décor du fond vert : {value}",
+    "settingTolerance": "Tolérance du fond vert : {value}",
+    "greenCalibrated": "Fond vert calibré ({coverage} % de la photo est la toile verte)",
+    "greenCalibrationFailed": "Calibrage du fond vert raté : {reason}"
+  },
+  "greenscreen": {
+    "noPhoto": "L'appareil n'a pas pris la photo de calibrage. Vérifiez la mise au point (visez une personne devant la toile, ou passez en mise au point manuelle) et réessayez.",
+    "notGreen": "Aucune toile verte trouvée : seulement {coverage} % de la photo est vert. La toile doit occuper une bonne partie de l'image et être bien éclairée.",
+    "failed": "Le calibrage a échoué. Réessayez."
+  },
+  "backgrounds": {
+    "01-beach": "Plage",
+    "02-space": "Espace",
+    "03-party-lights": "Lumières de fête",
+    "04-city-night": "Ville la nuit"
   }
 }

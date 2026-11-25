@@ -62,6 +62,7 @@ function applySettings(s) {
   renderFrames();
   renderThemes();
   renderLanguages();
+  renderGreen();
 }
 async function loadSettings() {
   applySettings(await fetch('/api/settings').then((r) => r.json()));
@@ -180,6 +181,59 @@ function renderFrames() {
   frameList.forEach((f) => tiles.push(tile(f.label, f.preview, cur === f.id, () => save({ frame: f.id }))));
   $('frameGrid').replaceChildren(...tiles);
 }
+
+/* ---------- Green screen ---------- */
+let backgroundList = [];
+async function loadBackgrounds() {
+  try { backgroundList = await fetch('/api/backgrounds').then((r) => r.json()); } catch (_) { backgroundList = []; }
+  renderGreen();
+}
+function renderGreen() {
+  if (!$('greenCard')) return;
+  $('greenToggle').checked = Boolean(settings.greenScreen);
+  if (document.activeElement !== $('greenTolerance')) $('greenTolerance').value = settings.greenTolerance ?? 50;
+  $('greenToleranceValue').textContent = $('greenTolerance').value;
+  const key = settings.greenKey;
+  $('greenStatus').textContent = key && key.at
+    ? t('admin.greenCalibrated', { date: new Date(key.at).toLocaleString(t('locale'), { dateStyle: 'medium', timeStyle: 'short' }) })
+    : t('admin.greenNotCalibrated');
+  const img = $('greenPreview');
+  if (settings.greenPreview) {
+    if (img.getAttribute('src') !== settings.greenPreview) img.src = settings.greenPreview;
+    img.hidden = false;
+  } else {
+    img.hidden = true;
+    img.removeAttribute('src');
+  }
+  const cur = settings.background ? settings.background.id : null;
+  const tiles = backgroundList.map((b) => {
+    const el = tile(b.label, b.preview, cur === b.id, () => save({ background: b.id }));
+    el.querySelector('.frame-thumb').classList.add('bg-thumb');
+    return el;
+  });
+  if (!tiles.length) tiles.push(Object.assign(document.createElement('p'), { className: 'hint', textContent: t('admin.greenNoBackground') }));
+  $('backgroundGrid').replaceChildren(...tiles);
+}
+$('greenToggle').addEventListener('change', (e) => save({ greenScreen: e.target.checked }));
+$('greenTolerance').addEventListener('input', (e) => { $('greenToleranceValue').textContent = e.target.value; });
+$('greenTolerance').addEventListener('change', (e) => save({ greenTolerance: Number(e.target.value) }));
+$('greenCalibrate').addEventListener('click', async () => {
+  const btn = $('greenCalibrate');
+  btn.disabled = true;
+  $('greenStatus').textContent = t('admin.greenCalibrating');
+  try {
+    const r = await fetch('/api/greenscreen/calibrate', { method: 'POST' });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || t('admin.saveFailed'));
+    applySettings(j);
+    toast(t('admin.saved'), 'ok');
+  } catch (err) {
+    toast(err.message);
+    renderGreen();
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 /* ---------- Focus (mode read from the camera) ---------- */
 function setFocusMode(mode) {
@@ -361,7 +415,7 @@ function toast(msg, kind) {
   const initial = await loadSettingsLang(); // language first, so every text is translated
   refreshStatus();
   loadNetwork();
-  await Promise.all([loadCameraInfo(), loadFrames(), loadThemes(), loadLanguages()]);
+  await Promise.all([loadCameraInfo(), loadFrames(), loadThemes(), loadLanguages(), loadBackgrounds()]);
   if (initial) applySettings(initial);
   else loadSettings().catch(() => {});
   connectEvents();

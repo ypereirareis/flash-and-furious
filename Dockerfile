@@ -45,6 +45,7 @@ COPY package.json package-lock.json ./
 COPY server ./server
 COPY public ./public
 COPY frames ./frames
+COPY backgrounds ./backgrounds
 # Checks and prepares the photos folder on every start (idempotent), then runs the CMD
 COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 

@@ -22,6 +22,8 @@ services:
           create_host_path: ${PHOTOS_CREATE:-true}
       # Frames (transparent PNG or SVG), editable without rebuilding the image
       - ./frames:/app/frames:ro
+      # Green screen backgrounds (JPEG, PNG or SVG), editable without rebuilding the image
+      - ./backgrounds:/app/backgrounds:ro
       # Settings saved from /admin
       - ./config:/app/config
       # USB bus mounted as a volume (not as a "device") to support

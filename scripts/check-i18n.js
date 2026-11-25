@@ -52,7 +52,7 @@ const used = new Set();
 const add = (re, text, map = (m) => m[1]) => { for (const m of text.matchAll(re)) used.add(map(m)); };
 for (const f of files) {
   const s = read(f);
-  add(/'((?:app|status|booth|slideshow|admin|shoot|settings|storage|journal)\.\w+)'/g, s);
+  add(/'((?:app|status|booth|slideshow|admin|shoot|settings|storage|journal|greenscreen)\.\w+)'/g, s);
   add(/data-i18n(?:-html)?="([\w.]+)"/g, s);
   for (const m of s.matchAll(/data-i18n-attr="([^"]+)"/g)) m[1].split(';').forEach((p) => used.add(p.split(':')[1].trim()));
 }
