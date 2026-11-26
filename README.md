@@ -152,6 +152,10 @@ The result:
 A photo still waiting for its full-size version is noted in `photos/.cache/pending_<name>.json`: after a restart
 or a power cut, its processing resumes on start-up. A clean stop (`docker compose stop`) waits for it.
 
+`photos/.cache/` also holds the copies of each photo made for the screens (thumbnail, tablet, 4K). On every
+start-up, the copies of photos deleted on the host are removed, as well as the leftovers of a write cut short:
+deleting a photo from the folder (then restarting the app) leaves nothing of it behind.
+
 ## Feature modules
 
 Everything that changes the photos, and its settings in `/admin`, is a module of the `src/features/` folder,
