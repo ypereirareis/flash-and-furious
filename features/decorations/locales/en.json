@@ -1,17 +1,21 @@
 {
   "decorations": {
     "admin": {
-      "toggle": "Theme decorations on photos",
-      "hint": "Also adds the theme drawings (pumpkins, fir trees, cake…) to the photos, with or without a frame.",
-      "none": " The “{theme}” theme has no decorations: no effect."
+      "screen": "Theme decorations on the tablet",
+      "screenHint": "Drawings of the theme around the preview.",
+      "photos": "Theme decorations on the photos",
+      "photosHint": "Drawings of the theme on the corners of the photos, with or without a frame.",
+      "none": "The “{theme}” theme has no decorations: no effect."
     },
     "booth": {
       "adding": "Adding the decorations…"
     },
     "journal": {
       "with": "theme decorations",
-      "settingOn": "Theme decorations on photos: on",
-      "settingOff": "Theme decorations on photos: off"
+      "screenOn": "Theme decorations on the tablet: on",
+      "screenOff": "Theme decorations on the tablet: off",
+      "photosOn": "Theme decorations on photos: on",
+      "photosOff": "Theme decorations on photos: off"
     }
   }
 }

@@ -119,12 +119,10 @@ force it with the `HOST_IP` variable in `docker-compose.yml`.
 
 In `/admin`, "Colour theme" card: 13 themes (including Halloween, Christmas, Wedding, Birthday, Acid pop), applied to the tablet right away.
 To try a theme on a single screen without saving it: `http://<host>:3000/?theme=halloween`.
-Halloween, Christmas, Wedding and Birthday have SVG decorations (pumpkins, fir trees, roses and rings, cake with candles…) in `public/deco/`,
-placed on the corners of the preview and as a pattern in the right-hand column. A theme gets them through `deco-corner`,
-`deco-top` and `deco-pattern` in `server/themes.js`.
-"Theme decorations on photos" option (`/admin`, Theme card): the theme decorations are also added
-to the photos, with or without a frame (no effect for a theme without decorations), in colour even on black &
-white photos (module [`features/decorations/`](#feature-modules)). The Gallery and Back buttons take the theme's bright colour.
+The Gallery and Back buttons take the theme's bright colour.
+A theme is only colours. Drawings matching it (pumpkins, fir trees, roses and rings, cake with candles… for Halloween,
+Christmas, Wedding and Birthday) come from the [`decorations`](features/decorations/README.md) module: on the tablet,
+on the photos, or both, with two switches in the Theme card. Decorations are optional for a theme.
 To add or change a theme: `server/themes.js` (one entry per theme) and its name in `public/locales/*.json`, then `docker compose up -d --build`.
 
 ## Photo editing
@@ -151,7 +149,7 @@ documented in its own `README.md`:
 | [`greenscreen`](features/greenscreen/README.md) | replaces a green cloth with a background | Green screen card: on/off, calibration, background, tolerance |
 | [`bw`](features/bw/README.md) | black & white button on the tablet (the guests' choice) | — |
 | [`frames`](features/frames/README.md) | a frame on the photos and over live view | Frames card: frame, text |
-| [`decorations`](features/decorations/README.md) | the theme's drawings on the photos | Colour theme card: on/off |
+| [`decorations`](features/decorations/README.md) | the theme's drawings on the tablet and/or on the photos | Colour theme card: on the tablet, on the photos |
 
 **Choosing the modules**: `FEATURES` in `.env` (then `docker compose up -d`): `all` (default), `none`, or a
 list such as `FEATURES=bw,frames`. The active modules keep all their settings in `/admin`, to change during the
@@ -352,7 +350,7 @@ rebuilt when `package.json` or `package-lock.json` change.
 - `GET /api/status`: camera detected or not, shot in progress
 - `POST /api/shoot`: takes a photo (with the `/admin` settings)
 - `GET /api/settings`, `PUT /api/settings` `{ "mirror", "live", "theme", "lang" }` and those of the active modules
-  (`"frame", "frameTitle"`, `"photoDeco"`, `"greenScreen", "background", "greenTolerance"`), `GET /api/themes`, `GET /api/languages`: settings
+  (`"frame", "frameTitle"`, `"screenDeco", "photoDeco"`, `"greenScreen", "background", "greenTolerance"`), `GET /api/themes`, `GET /api/languages`: settings
 - `GET /api/features`: active feature modules and their files for the screens
 - routes of the modules: see their `README.md` (e.g. `GET /api/frames`, `GET /api/backgrounds`)
 - `GET /api/camera`: driver, capabilities and camera help texts

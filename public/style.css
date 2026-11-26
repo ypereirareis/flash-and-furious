@@ -19,9 +19,6 @@
   --text-shadow: rgba(0, 0, 0, .6);
   --accent: #a98bff;          /* the theme's bright colour */
   --accent-rgb: 169, 139, 255;
-  --deco-corner: none;        /* optional theme decorations (Halloween, Christmas…) */
-  --deco-top: none;
-  --deco-pattern: none;
   --radius: 22px;
   --tap: 76px;       /* minimum touch target size */
   --side: 260px;     /* control column width (landscape) */
@@ -288,10 +285,11 @@ body:not(.admin) {
   box-shadow: inset 0 0 0 2px var(--line);
 }
 .controls {
-  background: var(--deco-pattern) center / 120px repeat, linear-gradient(180deg, rgba(var(--accent-rgb), .32), rgba(var(--accent-rgb), .12));
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), .32), rgba(var(--accent-rgb), .12));
   box-shadow: inset 0 0 0 3px rgba(var(--accent-rgb), .6);
 }
 .last-thumb { border-color: var(--accent); }
+#view-shoot { position: relative; }
 
 /* Gallery button in the theme colours */
 .big-btn.gallery-btn {
@@ -299,19 +297,6 @@ body:not(.admin) {
   color: #1b1240; box-shadow: 0 6px 20px rgba(var(--accent-rgb), .4);
 }
 
-/* Theme decorations: straddling the preview corners (mostly over the empty bands around
-   the photo), without catching touches. Invisible for themes without decorations. */
-#view-shoot { position: relative; }
-#view-shoot::before, #view-shoot::after {
-  content: ""; position: absolute; pointer-events: none; z-index: 6;
-  background: no-repeat left bottom / contain; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .35));
-}
-#view-shoot::before { left: 2px; bottom: 0; width: 300px; height: 225px; background-image: var(--deco-corner); }
-#view-shoot::after { left: 4px; top: 4px; width: 300px; height: 177px; background-image: var(--deco-top); background-position: left top; }
-@media (orientation: portrait), (max-height: 720px) {
-  #view-shoot::before { width: 210px; height: 158px; }
-  #view-shoot::after { width: 200px; height: 118px; }
-}
 
 /* Gallery Back button in the theme colours (like the Gallery button) */
 .big-btn.back-btn {

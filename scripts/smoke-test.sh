@@ -40,7 +40,11 @@ expect "admin page"           /admin                   200 'data-i18n="admin.dis
 expect "slideshow page"       /slideshow               200 'data-i18n="slideshow.newPhoto"'
 expect "English texts"        /locales/en.json         200 '"smile":"Smile!"'
 expect "French texts"         /locales/fr.json         200 '"smile":"Souriez !"'
-expect "theme decoration"     /deco/christmas-corner.svg 200 '<svg'
+# decorations module, when active
+if curl -fsS "$BASE/api/features" | grep -q '"id":"decorations"'; then
+  expect "theme decorations CSS" /api/decorations/themes.css 200 'html[data-theme="christmas"]'
+  expect "theme decoration"      /features/decorations/deco/christmas-corner.svg 200 '<svg'
+fi
 expect "no direct photo URL"  /photos/x.jpg            404
 expect "unknown media"        /media/view/missing.jpg  404
 

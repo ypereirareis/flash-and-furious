@@ -6,18 +6,11 @@
  * under "themes" in public/locales/*.json (the `label` here is the fallback).
  *   bg / bg2: screen background; stage1 / stage2: preview area; accent: the theme's bright colour
  *   (preview border, control column); shade: tint of the overlays (r, g, b).
- *   deco-corner / deco-top / deco-pattern (optional): SVG decorations from public/deco/ (bottom-left
- *   corner of the preview, top-left corner, pattern of the control column).
+ * Decorations (drawings around the preview and on the photos) are not part of the themes: see the
+ * decorations module (features/decorations/), which finds them by theme id.
  * The matching CSS is generated automatically (/themes.css).
  */
 
-const path = require('path');
-
-const deco = (id) => ({
-  'deco-corner': `url("/deco/${id}-corner.svg")`,
-  'deco-top': `url("/deco/${id}-top.svg")`,
-  'deco-pattern': `url("/deco/${id}-pattern.svg")`,
-});
 
 const THEMES = [
   {
@@ -51,13 +44,13 @@ const THEMES = [
   {
     id: 'halloween', label: 'Halloween',
     vars: {
-      ...deco('halloween'), accent: '#ff7a1a', 'accent-rgb': '255, 122, 26',
+      accent: '#ff7a1a', 'accent-rgb': '255, 122, 26',
       bg: '#0e0814', bg2: '#7a3008', stage1: '#4a2a5e', stage2: '#0a050e', shade: '14, 8, 20', muted: '#f6c79a', heading: '#ff8f3a' },
   },
   {
     id: 'christmas', label: 'Christmas',
     vars: {
-      ...deco('christmas'), accent: '#ffd166', 'accent-rgb': '255, 209, 102',
+      accent: '#ffd166', 'accent-rgb': '255, 209, 102',
       bg: '#073a24', bg2: '#b3122b', stage1: '#1d5a3a', stage2: '#04170f', shade: '5, 30, 20', muted: '#f3dcc0', heading: '#ffd166' },
   },
   {
@@ -68,7 +61,6 @@ const THEMES = [
   {
     id: 'wedding', label: 'Wedding',
     vars: {
-      ...deco('wedding'),
       accent: '#d4a95a', 'accent-rgb': '212, 169, 90',
       bg: '#f6ebe4', bg2: '#fffaf6', stage1: '#ffffff', stage2: '#f1e3da', shade: '246, 235, 228',
       text: '#4a2c3a', muted: '#8a6a78', panel: 'rgba(74, 44, 58, .06)', 'panel-strong': 'rgba(255, 255, 255, .92)',
@@ -78,7 +70,6 @@ const THEMES = [
   {
     id: 'birthday', label: 'Birthday',
     vars: {
-      ...deco('birthday'),
       accent: '#ff6fb5', 'accent-rgb': '255, 111, 181',
       bg: '#10245a', bg2: '#6a2ee0', stage1: '#3a3aa0', stage2: '#0a1640', shade: '12, 24, 64', muted: '#d6dcff', heading: '#ffd23f',
     },
@@ -94,38 +85,22 @@ const THEMES = [
 ];
 
 const DEFAULT_THEME = 'night';
-const DECO_DIR = path.join(__dirname, '..', 'public', 'deco');
-
-/**
- * SVG decoration files of a theme (to also add them to the photos, see features/decorations/),
- * or null if the theme has none. { id, corner: path, top: path }
- */
-function decoFiles(id) {
-  const t = THEMES.find((x) => x.id === id);
-  if (!t) return null;
-  const file = (key) => {
-    const m = String(t.vars[key] || '').match(/\/deco\/([\w.-]+\.svg)/);
-    return m ? path.join(DECO_DIR, m[1]) : null;
-  };
-  const files = { id: t.id, corner: file('deco-corner'), top: file('deco-top') };
-  return files.corner || files.top ? files : null;
-}
 const ids = new Set(THEMES.map((t) => t.id));
 
 function isValid(id) {
   return ids.has(id);
 }
 
-/** List for the admin page: [{ id, label, bg, bg2, accent, hasDeco }] */
+/** List for the admin page: [{ id, label, bg, bg2, accent }] */
 function list() {
-  return THEMES.map((t) => ({ id: t.id, label: t.label, bg: t.vars.bg, bg2: t.vars.bg2, accent: t.vars.accent, hasDeco: Boolean(decoFiles(t.id)) }));
+  return THEMES.map((t) => ({ id: t.id, label: t.label, bg: t.vars.bg, bg2: t.vars.bg2, accent: t.vars.accent }));
 }
 
 // Shared values of the dark themes: every theme defines ALL its colours, otherwise a dark theme
 // tile would inherit the dark text of a page in a light theme (and vice versa).
 const BASE = {
   text: '#fff8f0', panel: 'rgba(255, 255, 255, .08)', line: 'rgba(255, 255, 255, .16)', heading: '#ffc94a',
-  'text-shadow': 'rgba(0, 0, 0, .6)', 'deco-corner': 'none', 'deco-top': 'none', 'deco-pattern': 'none',
+  'text-shadow': 'rgba(0, 0, 0, .6)',
 };
 
 /** CSS: one [data-theme="id"] rule per theme (usable on <html> or on a tile). */
@@ -137,4 +112,4 @@ function css() {
   }).join('\n\n') + '\n';
 }
 
-module.exports = { list, css, isValid, decoFiles, DEFAULT_THEME };
+module.exports = { list, css, isValid, DEFAULT_THEME };

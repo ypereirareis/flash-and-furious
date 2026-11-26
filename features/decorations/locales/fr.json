@@ -1,17 +1,21 @@
 {
   "decorations": {
     "admin": {
-      "toggle": "Décors du thème sur les photos",
-      "hint": "Pose aussi les dessins du thème (citrouilles, sapins, gâteau…) sur les photos, avec ou sans cadre.",
-      "none": " Le thème « {theme} » n'a pas de décors : sans effet."
+      "screen": "Décors du thème sur la tablette",
+      "screenHint": "Dessins du thème autour de l'aperçu.",
+      "photos": "Décors du thème sur les photos",
+      "photosHint": "Dessins du thème dans les coins des photos, avec ou sans cadre.",
+      "none": "Le thème « {theme} » n'a pas de décors : sans effet."
     },
     "booth": {
       "adding": "Ajout des décors…"
     },
     "journal": {
       "with": "décors du thème",
-      "settingOn": "Décorations du thème sur les photos : activées",
-      "settingOff": "Décorations du thème sur les photos : désactivées"
+      "screenOn": "Décors du thème sur la tablette : activés",
+      "screenOff": "Décors du thème sur la tablette : désactivés",
+      "photosOn": "Décorations du thème sur les photos : activées",
+      "photosOff": "Décorations du thème sur les photos : désactivées"
     }
   }
 }

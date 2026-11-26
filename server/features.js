@@ -30,7 +30,8 @@
  *   step: { icon, key, priority }                       message on the tablet while editing
  *             (the module with the highest priority among the photo's edits is shown)
  *   journalDetail(data) -> message                      its part of the photo's journal entry
- *   ui: { css: [...], booth: [...], admin: [...] }      its files in public/ for each page
+ *   ui: { css: [...], booth: [...], admin: [...] }      its files in public/ for each page (or its
+ *             routes, starting with "/")
  *
  * core (given to every module): what the modules may use from the app, see server/index.js.
  */
@@ -211,7 +212,8 @@ function mount(app, express, staticOptions) {
 function ui() {
   return active().map((m) => {
     const u = m.def.ui || {};
-    const urls = (list) => (list || []).map((f) => `/features/${m.id}/${f}`);
+    // file of its public/ folder, or a route of the module (starting with "/")
+    const urls = (list) => (list || []).map((f) => (f.startsWith('/') ? f : `/features/${m.id}/${f}`));
     return { id: m.id, css: urls(u.css), booth: urls(u.booth), admin: urls(u.admin) };
   });
 }

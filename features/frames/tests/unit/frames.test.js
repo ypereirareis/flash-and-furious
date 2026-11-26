@@ -14,7 +14,7 @@ const { def, features, edit, settings } = require('../../../../tests/unit/module
 const { render: frames, MAX_TITLE } = require('../..');
 test.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
 const opts = { title: 'Coucou Marjo !!!', locale: 'fr-FR' };
-const BIRTHDAY = { id: 'birthday', corner: path.join(__dirname, '../../../../public/deco/birthday-corner.svg') };
+const BIRTHDAY = { id: 'birthday', corner: path.join(__dirname, '../../../decorations/public/deco/birthday-corner.svg') };
 
 /** A photo edited with this frame (and other modules' edits: { bw, decorations }), as the server does. */
 function apply(frame, src, dst, options = {}) {
