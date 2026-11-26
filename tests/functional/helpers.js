@@ -13,6 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
+const { after } = require('node:test');
 const sharp = require('sharp');
 
 const ROOT = path.join(__dirname, '..', '..');
@@ -24,6 +25,17 @@ fs.mkdirSync(path.join(WORK, 'logs'), { recursive: true });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let nextPort = 4100 + Math.floor(Math.random() * 500) * 2;
+
+// Servers still running at the end of a test file (a test that failed before stopping its
+// server) are stopped: otherwise the file never ends and the whole run hangs.
+const running = new Set();
+after(async () => {
+  await Promise.all([...running].map(async (server) => {
+    const force = setTimeout(() => server.proc.kill('SIGKILL'), 15000);
+    await server.stop();
+    clearTimeout(force);
+  }));
+});
 
 /** Skips a test that needs the fake camera (failure modes, special photos) in real mode. */
 const fakeOnly = REAL ? 'needs the fake camera' : false;
@@ -161,11 +173,13 @@ async function startServer(name, { env = {}, dirs = null, waitCamera = true } = 
     settings: (patch) => server.json('/api/settings', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(patch) }),
     /** Stops the server with a signal and waits for it to exit. */
     stop: async (signal = 'SIGTERM') => {
-      server.events.close();
+      server.events?.close();
       if (proc.exitCode === null && proc.signalCode === null) proc.kill(signal);
       return exited;
     },
   };
+  running.add(server);
+  exited.then(() => running.delete(server));
   await waitFor(() => server.api('/api/status').then((r) => r.ok), { what: `server ${name} to start` });
   server.events = await listen(url);
   if (waitCamera) await waitFor(async () => { const s = await server.status(); return s.camera && !s.error; }, { timeout: 20000, what: 'the camera' });

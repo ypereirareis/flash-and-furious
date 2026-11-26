@@ -47,9 +47,9 @@ class Gphoto2Camera {
   }
 
   /** Runs gphoto2 with these arguments (outside the queue). */
-  run(args, timeoutMs = 30000) {
+  run(args, timeoutMs = 30000, cwd = undefined) {
     return new Promise((resolve, reject) => {
-      execFile(GPHOTO, args, { timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
+      execFile(GPHOTO, args, { timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024, cwd }, (err, stdout, stderr) => {
         if (err) {
           err.stdout = stdout;
           err.stderr = stderr;
@@ -126,8 +126,10 @@ class Gphoto2Camera {
    * @returns {Promise<string>} text output (for logs)
    */
   capture(dir, baseName) {
+    // run from `dir`: gphoto2 downloads into a temporary file of its current folder, then renames
+    // it (the app's folder is not writable by the app's user, and the rename stays on one disk)
     return this.exclusive(() =>
-      this.run(['--capture-image-and-download', '--keep', '--force-overwrite', '--filename', `${dir}/${baseName}.%C`], 60000)
+      this.run(['--capture-image-and-download', '--keep', '--force-overwrite', '--filename', `${dir}/${baseName}.%C`], 60000, dir)
     );
   }
 

@@ -12,6 +12,9 @@
 #   -y, --yes      no confirmation before firing the real camera
 #   --only TEXT    only the test files whose name contains TEXT (e.g. --only queue)
 #   --keep         keep the test photos, server logs and timings (folder printed at the end)
+#
+# The tests run as you, like the app (PUID:PGID); with --real, also with the group of the camera's
+# USB device, USB_GID (46 = plugdev by default, as in docker-compose.yml).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -25,7 +28,7 @@ while (($#)); do
     -y | --yes) yes=true ;;
     --only) only=${2:?--only needs a text}; shift ;;
     --keep) keep=true ;;
-    -h | --help) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h | --help) sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown argument: $1 (see --help)" >&2; exit 2 ;;
   esac
   shift
@@ -57,14 +60,11 @@ if [[ $suite != unit ]]; then
   done
   if ((${#files[@]} == 0)); then echo "No functional test file matches '$only'" >&2; exit 2; fi
   work=$(mktemp -d -t flash-and-furious-tests.XXXXXX)
-  opts=(-v "$work:/work" -e TEST_WORK_DIR=/work -e PUID="$(id -u)" -e PGID="$(id -g)")
+  # as the user, like the app in its container
+  opts=(-u "$(id -u):$(id -g)" -v "$work:/work" -e TEST_WORK_DIR=/work -e PUID="$(id -u)" -e PGID="$(id -g)")
   restart_app=false
 
   cleanup() {
-    if $real; then
-      # files written as root: given back to the user
-      docker run --rm -v "$work:/work" --entrypoint chown "$IMAGE" -R "$(id -u):$(id -g)" /work || true
-    fi
     if $restart_app; then
       echo "== Starting the app again =="
       docker start "$APP_CONTAINER" >/dev/null && echo "$APP_CONTAINER started"
@@ -92,10 +92,11 @@ if [[ $suite != unit ]]; then
         gio mount -u "$uri" || true
       done
     fi
-    opts+=(-e CAMERA=real -v /dev/bus/usb:/dev/bus/usb --device-cgroup-rule 'c 189:* rmw')
+    # camera access through the group of its USB device, as for the app (not as root)
+    opts+=(--group-add "${USB_GID:-46}" -e CAMERA=real -v /dev/bus/usb:/dev/bus/usb --device-cgroup-rule 'c 189:* rmw')
   else
     echo "== Functional tests with the fake camera =="
-    opts+=(-u "$(id -u):$(id -g)" -e CAMERA=fake)
+    opts+=(-e CAMERA=fake)
   fi
 
   run_node "${opts[@]}" -- --test --test-concurrency=1 --test-reporter=spec "${files[@]}" || failed+=(functional)

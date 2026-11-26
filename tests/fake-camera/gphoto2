@@ -50,7 +50,15 @@ case "${1:-}" in
       exit 0
     fi
     jpg=$(printf '%s' "$target" | sed 's/%C$/jpg/')
-    cp "$(cat "$DIR/photo")" "$jpg"
+    # like the real gphoto2: downloaded into a temporary file of the CURRENT folder, then renamed
+    # (an error but exit code 0 when that folder is not writable)
+    tmp="./tmpfile$$"
+    if ! cp "$(cat "$DIR/photo")" "$tmp" 2>/dev/null; then
+      echo "New file is in location /capt0000.jpg on the camera"
+      printf '\n*** Error ***\nPermission denied\nERROR: Could not get image.\n' >&2
+      exit 0
+    fi
+    mv "$tmp" "$jpg"
     echo "Saving file as $jpg"
     if [ -e "$DIR/raw" ]; then
       cr2=$(printf '%s' "$target" | sed 's/%C$/cr2/')
