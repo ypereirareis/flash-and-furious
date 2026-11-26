@@ -18,6 +18,7 @@ const storage = require('./storage');
 const journal = require('./journal');
 let shuttingDown = false; // set by SIGTERM / SIGINT (clean stop)
 const { IMAGE_RE, safeName, timestamp, toDto, lanAddresses } = require('./photos');
+const { cleanCache } = require('./cache');
 
 const PORT = Number(process.env.PORT || 3000);
 const PHOTOS_DIR = path.resolve(process.env.PHOTOS_DIR || path.join(__dirname, '..', 'photos'));
@@ -772,6 +773,12 @@ app.get('/api/events', (req, res) => {
     clients.delete(res);
   });
 });
+
+// Copies of photos deleted on the host, and leftovers of a cut: removed once, before any request
+{
+  const { removed, bytes } = cleanCache(CACHE_DIR, PHOTOS_DIR, Object.keys(SIZES));
+  if (removed) console.log(`[cache] ${removed} file(s) of deleted photos or interrupted writes removed (${(bytes / 1048576).toFixed(1)} MB)`);
+}
 
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`Camera driver: ${camera.id} (${camera.label})`);
