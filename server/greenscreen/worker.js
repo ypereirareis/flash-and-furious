@@ -1,9 +1,9 @@
 'use strict';
 
-// Worker thread of server/greenscreen.js: the per-pixel work, so that the server stays
+// Worker thread of images.js: the per-pixel work, so that the server stays
 // responsive meanwhile (countdown, live view, tablet). Buffers are shared, not copied.
 const { parentPort } = require('worker_threads');
-const { keyComposite } = require('./greenscreen-key');
+const { keyComposite } = require('./key');
 
 parentPort.on('message', ({ id, photo, background, width, height, params }) => {
   try {

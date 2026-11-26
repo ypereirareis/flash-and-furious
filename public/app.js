@@ -234,7 +234,7 @@ function connectEvents() {
         } else if (ev.phase === 'focusing') showOverlay(undefined, t('booth.focusing'));
         else if (ev.phase === 'framing') {
           if (ev.frame) showOverlay('🖼️', t('booth.addingFrame'));
-          else if (ev.green) showOverlay('🏝️', t('booth.applyingBackground'));
+          else if (ev.green) showOverlay('🏝️', t('greenscreen.booth.applyingBackground')); // green screen (optional)
           else showOverlay('🎞️', t('booth.applyingBw'));
         }
         else if (ev.phase === 'retrying') showOverlay('', t('booth.retrying'));

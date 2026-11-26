@@ -8,7 +8,6 @@
 const path = require('path');
 const fsp = require('fs').promises;
 const sharp = require('sharp');
-const greenscreen = require('./greenscreen');
 
 const FRAMES_DIR = path.resolve(process.env.FRAMES_DIR || path.join(__dirname, '..', 'frames'));
 const FRAME_RE = /\.(png|svg)$/i;
@@ -223,21 +222,21 @@ async function overlay(frame, width, height, opts) {
 
 /**
  * Processes the photo `src` and writes the result to `dst` (JPEG):
- *  - green screen (optional): the green cloth replaced with a background, `green` carries
- *    { background, key, tolerance } (see greenscreen.js);
+ *  - `retouch` (optional): async function changing the photo's RGB pixels before black &
+ *    white, ({ data, info }) -> Buffer of the same size (the green screen uses it);
  *  - black & white if `bw` (photo and background: frame and decorations keep their colours);
  *  - frame (optional) with its text and the theme decorations: `frame` carries { title, locale, deco }.
  * `maxSize`: fast version for the screens, at most this many pixels on its longest side
  * (the full-size photo otherwise). `quality`: JPEG quality.
  */
-async function apply(frame, src, dst, { bw = false, green = null, maxSize = null, quality = 92 } = {}) {
+async function apply(frame, src, dst, { bw = false, retouch = null, maxSize = null, quality = 92 } = {}) {
   // apply the EXIF orientation first, to work on the image "the right way up"
   let img = sharp(src).rotate();
   if (maxSize) img = img.resize({ width: maxSize, height: maxSize, fit: 'inside', withoutEnlargement: true });
-  if (green) {
-    // background first, in colour; black & white then applies to the whole scene
+  if (retouch) {
+    // in colour first; black & white then applies to the whole result
     const rgb = await img.removeAlpha().raw().toBuffer({ resolveWithObject: true });
-    img = sharp(await greenscreen.composite(rgb, green), { raw: rgb.info });
+    img = sharp(await retouch(rgb), { raw: rgb.info });
   }
   // B&W, slightly more contrast. greyscale() gives the same result as modulate({ saturation: 0 })
   // (within 2/255) about 7x faster; frame and decorations are composited in colour over it.

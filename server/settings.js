@@ -22,15 +22,21 @@ const DEFAULTS = {
   theme: themes.DEFAULT_THEME, // UI colour theme (see themes.js)
   frameDeco: false, // also add the theme's SVG decorations to framed photos
   lang: i18n.isValid(ENV_LANG) ? ENV_LANG : i18n.FALLBACK, // UI language (public/locales/)
-  greenScreen: false, // replace the green cloth behind the guests with a background
-  background: null, // id of the background (backgrounds/ folder)
-  greenTolerance: 50, // 0-100: higher removes more green (50 = as calibrated)
-  greenKey: null, // calibration { lo, hi, coverage, at } (null = default thresholds)
 };
 const MAX_TITLE = 60;
 
 // Ids used by earlier versions, mapped to the current ones
 const LEGACY_FRAMES = { '02-fete': '02-party' };
+
+/**
+ * Settings added by an optional feature (e.g. the green screen): its defaults, and a
+ * function cleaning up its values. Saved in the same file.
+ */
+const extensions = [];
+function extend({ defaults, sanitize: clean }) {
+  extensions.push({ defaults, clean });
+  current = { ...defaults, ...current };
+}
 
 let current = { ...DEFAULTS };
 
@@ -38,17 +44,19 @@ function load() {
   fs.mkdirSync(CONFIG_DIR, { recursive: true });
   try {
     const saved = JSON.parse(fs.readFileSync(FILE, 'utf8'));
-    current = sanitize({ ...DEFAULTS, ...saved });
+    current = sanitize({ ...allDefaults(), ...saved });
   } catch (_) {
-    current = { ...DEFAULTS };
+    current = allDefaults();
   }
   return current;
 }
 
+const allDefaults = () => Object.assign({ ...DEFAULTS }, ...extensions.map((e) => e.defaults));
+
 function sanitize(s) {
   const frame = LEGACY_FRAMES[s.frame] || s.frame;
   const theme = themes.LEGACY_IDS[s.theme] || s.theme;
-  return {
+  const base = {
     mirror: Boolean(s.mirror),
     live: Boolean(s.live),
     frame: typeof frame === 'string' && /^[\w.-]+$/.test(frame) ? frame : null,
@@ -56,21 +64,8 @@ function sanitize(s) {
     theme: themes.isValid(theme) ? theme : DEFAULTS.theme,
     frameDeco: Boolean(s.frameDeco),
     lang: i18n.isValid(s.lang) ? s.lang : DEFAULTS.lang,
-    greenScreen: Boolean(s.greenScreen),
-    background: typeof s.background === 'string' && /^[\w.-]+$/.test(s.background) ? s.background : null,
-    greenTolerance: Number.isFinite(Number(s.greenTolerance)) && s.greenTolerance !== null && s.greenTolerance !== ''
-      ? Math.round(Math.min(100, Math.max(0, Number(s.greenTolerance))))
-      : DEFAULTS.greenTolerance,
-    greenKey: validKey(s.greenKey),
   };
-}
-
-/** Calibration result, or null if missing or not usable. */
-function validKey(k) {
-  if (!k || typeof k !== 'object') return null;
-  const n = (v) => Number.isFinite(v) && v >= 0 && v <= 255;
-  if (!n(k.lo) || !n(k.hi) || k.lo >= k.hi) return null;
-  return { lo: k.lo, hi: k.hi, coverage: Number.isFinite(k.coverage) ? k.coverage : null, at: Number.isFinite(k.at) ? k.at : null };
+  return Object.assign(base, ...extensions.map((e) => e.clean(s)));
 }
 
 function get() {
@@ -88,4 +83,4 @@ async function update(patch, chown) {
   return get();
 }
 
-module.exports = { load, get, update, CONFIG_DIR, MAX_TITLE };
+module.exports = { load, get, update, extend, CONFIG_DIR, MAX_TITLE };

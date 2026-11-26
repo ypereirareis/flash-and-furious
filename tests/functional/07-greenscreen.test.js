@@ -117,3 +117,19 @@ test('settings: checked, and written in the journal', { skip }, async () => {
   const file = path.join(server.photosDir, shot.photo.name);
   assert.ok(!near(await colourAt(file, 0.05, 0.05), MAGENTA), 'cloth kept');
 });
+
+test('GREEN_SCREEN=off: no routes, no settings for /admin, photos never changed', { skip }, async () => {
+  const off = await startServer('greenscreen-off', { env: { BACKGROUNDS_DIR: bgDir, GREEN_SCREEN: 'off' } });
+  try {
+    for (const url of ['/api/backgrounds', '/api/greenscreen/preview.jpg']) assert.equal((await off.api(url)).status, 404, url);
+    assert.equal((await off.api('/api/greenscreen/calibrate', { method: 'POST' })).status, 404);
+    const s = await off.settings({ greenScreen: true, background: 'nope' }); // ignored, not refused
+    for (const k of ['greenScreen', 'background', 'greenTolerance', 'greenKey', 'greenPreview']) assert.ok(!(k in s), `no ${k}`);
+    off.camera.photo(await photos.green());
+    const shot = await shoot(off);
+    assert.ok(!shot.events.some((e) => e.type === 'phase' && e.phase === 'framing'), 'no processing');
+    assert.ok(!near(await colourAt(path.join(off.photosDir, shot.photo.name), 0.05, 0.05), MAGENTA), 'cloth kept');
+  } finally {
+    await off.stop();
+  }
+});

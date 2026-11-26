@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="themes.css" />
   <link rel="stylesheet" href="admin.css" />
+  <link rel="stylesheet" href="admin-green.css" /><!-- green screen (optional) -->
 </head>
 <body class="admin">
   <header class="topbar">
@@ -91,40 +92,7 @@
       </label>
     </section>
 
-    <section class="card wide" id="greenCard">
-      <h2 data-i18n="admin.green">Green screen</h2>
-      <p class="hint" data-i18n="admin.greenHint"></p>
-      <label class="switch-row">
-        <span>
-          <strong data-i18n="admin.greenToggle">Replace the green cloth</strong>
-          <small data-i18n="admin.greenToggleHint"></small>
-        </span>
-        <input type="checkbox" id="greenToggle" class="switch" />
-      </label>
-      <div class="green-body">
-        <div class="green-calib">
-          <figure class="green-preview" id="greenPreviewBox">
-            <img id="greenPreview" alt="" data-i18n-attr="alt:admin.greenPreviewAlt" hidden />
-            <figcaption id="greenStatus"></figcaption>
-          </figure>
-          <button type="button" class="big-btn" id="greenCalibrate">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-            <span class="lbl" data-i18n="admin.greenCalibrate">Calibrate</span>
-          </button>
-          <small class="hint" data-i18n="admin.greenCalibrateHint"></small>
-        </div>
-        <div class="green-tolerance">
-          <label for="greenTolerance"><strong data-i18n="admin.greenTolerance">Tolerance</strong> <output id="greenToleranceValue"></output></label>
-          <input type="range" id="greenTolerance" min="0" max="100" step="5" />
-          <small data-i18n="admin.greenToleranceHint"></small>
-        </div>
-      </div>
-      <h3 data-i18n="admin.greenBackgrounds">Background</h3>
-      <p class="hint" data-i18n-html="admin.backgroundsHint"></p>
-      <div id="backgroundGrid" class="frame-grid"></div>
-    </section>
-
-    <section class="card wide">
+    <section class="card wide" id="framesCard">
       <h2 data-i18n="admin.frames">Frame applied to photos</h2>
       <form class="title-form" id="titleForm" autocomplete="off">
         <label for="titleInput" data-i18n="admin.frameText">Text shown on frames</label>
@@ -155,6 +123,7 @@
 
   <div id="toast" class="toast" hidden></div>
   <script src="i18n.js"></script>
+  <script src="admin-green.js"></script><!-- green screen (optional) -->
   <script src="admin.js"></script>
 </body>
 </html>

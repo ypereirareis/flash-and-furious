@@ -1,10 +1,10 @@
 'use strict';
 
 /**
- * Green screen: guests pose in front of a green cloth, and the green is replaced with a
- * background image (backgrounds/ folder: JPEG, PNG or SVG, ideally 3:2).
+ * Green screen images: the backgrounds (backgrounds/ folder: JPEG, PNG or SVG, ideally 3:2),
+ * calibration, previews, and the green replaced on a photo.
  *
- * The pixel work (server/greenscreen-key.js) runs in a worker thread: a full-size photo
+ * The pixel work (key.js) runs in a worker thread: a full-size photo
  * takes a moment, and the server must stay responsive meanwhile (countdown, live view).
  */
 
@@ -12,9 +12,9 @@ const path = require('path');
 const fsp = require('fs').promises;
 const { Worker } = require('worker_threads');
 const sharp = require('sharp');
-const key = require('./greenscreen-key');
+const key = require('./key');
 
-const BACKGROUNDS_DIR = path.resolve(process.env.BACKGROUNDS_DIR || path.join(__dirname, '..', 'backgrounds'));
+const BACKGROUNDS_DIR = path.resolve(process.env.BACKGROUNDS_DIR || path.join(__dirname, '..', '..', 'backgrounds'));
 const BACKGROUND_RE = /\.(jpe?g|png|svg)$/i;
 
 function labelFromFile(file) {
@@ -95,7 +95,7 @@ let nextJob = 1;
 const jobs = new Map();
 function getWorker() {
   if (worker) return worker;
-  worker = new Worker(path.join(__dirname, 'greenscreen-worker.js'));
+  worker = new Worker(path.join(__dirname, 'worker.js'));
   worker.unref(); // does not keep the process alive
   worker.on('message', ({ id, error }) => {
     const job = jobs.get(id);

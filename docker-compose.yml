@@ -22,7 +22,7 @@ services:
           create_host_path: ${PHOTOS_CREATE:-true}
       # Frames (transparent PNG or SVG), editable without rebuilding the image
       - ./frames:/app/frames:ro
-      # Green screen backgrounds (JPEG, PNG or SVG), editable without rebuilding the image
+      # Green screen (optional) backgrounds (JPEG, PNG or SVG), editable without rebuilding the image
       - ./backgrounds:/app/backgrounds:ro
       # Settings saved from /admin
       - ./config:/app/config
@@ -53,6 +53,8 @@ services:
       - LOOK_MESSAGE_SECONDS=${LOOK_MESSAGE_SECONDS:-2}
       - PRE_MESSAGE_SECONDS=${PRE_MESSAGE_SECONDS:-2}
       - FOCUS_BEFORE_END=${FOCUS_BEFORE_END:-2}
+      # Green screen (optional): off = feature disabled
+      - GREEN_SCREEN=${GREEN_SCREEN:-on}
       - LIVE_QUALITY=${LIVE_QUALITY:-70}
       - LIVE_MAX_SECONDS=${LIVE_MAX_SECONDS:-10}
       # Address to show in /admin if automatic detection is wrong (e.g. 192.168.1.42)

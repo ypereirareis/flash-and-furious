@@ -19,17 +19,16 @@ test.after(() => fs.rmSync(dir, { recursive: true, force: true }));
 test('defaults when nothing is saved', () => {
   assert.deepEqual(settings.load(), {
     mirror: true, live: false, frame: null, frameTitle: 'Our party', theme: 'night', frameDeco: false, lang: 'fr',
-    greenScreen: false, background: null, greenTolerance: 50, greenKey: null,
   });
 });
 
-test('green screen settings cleaned up', async () => {
-  let s = await settings.update({ greenScreen: 1, background: '../x', greenTolerance: 140, greenKey: { lo: 30, hi: 20 } });
-  assert.deepEqual([s.greenScreen, s.background, s.greenTolerance, s.greenKey], [true, null, 100, null]);
-  s = await settings.update({ background: '02-space', greenTolerance: '35', greenKey: { lo: 20, hi: 50, coverage: 60, at: 5, extra: 1 } });
-  assert.deepEqual([s.background, s.greenTolerance, s.greenKey], ['02-space', 35, { lo: 20, hi: 50, coverage: 60, at: 5 }]);
-  s = await settings.update({ greenTolerance: 'abc', greenScreen: false, background: null, greenKey: null });
-  assert.equal(s.greenTolerance, 50);
+test('settings added by an optional feature: defaults, clean-up, saved in the same file', async () => {
+  settings.extend({ defaults: { extra: 1 }, sanitize: (v) => ({ extra: Number(v.extra) > 0 ? Number(v.extra) : 1 }) });
+  assert.equal(settings.get().extra, 1);
+  assert.equal((await settings.update({ extra: '7' })).extra, 7);
+  assert.equal((await settings.update({ extra: -3 })).extra, 1);
+  assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).extra, 1);
+  assert.equal(settings.load().extra, 1);
 });
 
 test('update: values cleaned up, saved, read again on load', async () => {

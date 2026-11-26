@@ -175,6 +175,24 @@ For a good result:
 Adding a background: drop a JPEG, PNG or SVG into `backgrounds/`, ideally 3:2 and at least the camera's
 resolution (see `backgrounds/README.txt`). No restart needed. Live view on the tablet still shows the green cloth.
 
+### Switching it off, or removing it
+
+`GREEN_SCREEN=off` (in `.env`, then `docker compose up -d`) disables the feature entirely: no card in `/admin`,
+no green screen routes, photos never changed. Its settings stay saved for when it is switched back on.
+
+The code is kept apart so that it can be removed easily:
+
+| Where | What |
+|---|---|
+| `server/greenscreen/` | everything on the server: settings, routes, journal entries (`index.js`), images (`images.js`), pixel work (`key.js`, `worker.js`) |
+| `public/admin-green.js`, `public/admin-green.css` | the `/admin` card |
+| `"greenscreen"` block of `public/locales/*.json` | all its texts |
+| `backgrounds/`, `tests/unit/greenscreen.test.js`, `tests/functional/07-greenscreen.test.js` | backgrounds and tests |
+
+Elsewhere, only a few lines marked "green screen": `server/index.js` (the module, its routes, the photo of a
+shot), `public/admin.html` (two tags), `public/app.js` (one message on the tablet), `Dockerfile` and
+`docker-compose.yml` (the backgrounds folder).
+
 ## Automatic or manual focus
 
 On the 1000D, AF/MF is selected with the **physical switch on the lens** (no software can change it).
@@ -260,6 +278,7 @@ The admin page adapts by itself: help texts provided by the driver, sections hid
 | `PUID` / `PGID` | 1000 | Owner of the files created in the photos folder |
 | `PHOTOS_PATH`, `PHOTOS_CREATE`, `PHOTOS_EXTERNAL`, `STORAGE_MIN_FREE_MB` | see [Photos folder](#photos-folder) | Photos folder on the host |
 | `JOURNAL_MAX_ENTRIES`, `JOURNAL_MAX_BYTES`, `JOURNAL_MAX_PER_MINUTE` | 5000, 2097152, 120 | Limits of the [event journal](#event-journal) |
+| `GREEN_SCREEN` | on | `off` disables the [green screen](#green-screen) |
 | `BACKGROUNDS_DIR` | `backgrounds/` (mounted from the project) | [Green screen](#green-screen) backgrounds |
 
 ## The camera stops responding ("PTP Timeout")
