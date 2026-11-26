@@ -8,6 +8,7 @@
  *   index.js   settings, routes, journal entries, its edit of the photos
  *   images.js  backgrounds, calibration, previews, the green replaced on a photo
  *   key.js     the pixel work; worker.js runs it in a worker thread
+ *   backgrounds/  the backgrounds (JPEG, PNG or SVG), editable without rebuilding the image
  *   public/    the /admin card
  * See server/features.js for how modules plug in.
  */

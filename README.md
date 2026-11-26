@@ -157,8 +157,8 @@ list such as `FEATURES=bw,frames`. The active modules keep all their settings in
 event (frame, green screen on or off…). An inactive module is not loaded at all: no card, no button, no
 routes, never applied to the photos; its settings stay saved for when it is switched back on.
 
-**Removing a module from the code**: delete its folder (and its images folder: `frames/`, `backgrounds/`).
-Nothing else refers to it.
+**Removing a module from the code**: delete its folder, images included (`features/frames/frames/`,
+`features/greenscreen/backgrounds/`). Nothing else refers to it.
 
 **How the edits stack up**: the photo is decoded once, goes through the steps of the modules of the shot,
 then is encoded once (`server/photo.js`, which knows none of them). There are three stages, in this order:
@@ -179,20 +179,20 @@ until its full-size version is done.
 
 ## Frames
 
-The applied frame is chosen in `/admin`, among the frames of the `frames/` folder (Polaroid, Party, Cinema, Elegant included),
+The applied frame is chosen in `/admin`, among the frames of the `features/frames/frames/` folder (Polaroid, Party, Cinema, Elegant included),
 with the text shown on them (event title). The chosen frame is shown on top of live view so people can place
 themselves inside it. In black & white, the frame keeps its colours.
 
-Adding a frame: drop a transparent PNG or a 3:2 SVG into `frames/` (see `frames/README.txt`). No restart needed.
+Adding a frame: drop a transparent PNG or a 3:2 SVG into `features/frames/frames/` (see the `README.txt` there). No restart needed.
 In SVGs, `{{title}}` is replaced with the text typed in `/admin` (the same for every frame) and `{{date}}` with today's date.
 
-Module `features/frames/` (see [Feature modules](#feature-modules)); the frames themselves are in `frames/`.
+Module `features/frames/` (see [Feature modules](#feature-modules)), frames included.
 The theme decorations on photos do not depend on it.
 
 ## Green screen
 
 Guests pose in front of a green cloth, and the green is replaced with a background: beach, space, party lights
-and city at night are included, in the `backgrounds/` folder. Set it up in `/admin`, "Green screen" card:
+and city at night are included, in the `features/greenscreen/backgrounds/` folder. Set it up in `/admin`, "Green screen" card:
 1. **Calibrate**: takes a photo (not added to the gallery) to measure the exact green of the cloth under your
    lights. Someone may stand in front of it, which also helps the camera focus. The result is shown right away:
    the calibration photo with the chosen background. Calibrate again if the lights change.
@@ -215,12 +215,11 @@ For a good result:
 - no green clothes or accessories (they would become "transparent"); shiny objects and glasses can reflect green;
 - the camera in manual exposure and white balance, so the green stays the same from one photo to the next.
 
-Adding a background: drop a JPEG, PNG or SVG into `backgrounds/`, ideally 3:2 and at least the camera's
-resolution (see `backgrounds/README.txt`). No restart needed. Live view on the tablet still shows the green cloth.
+Adding a background: drop a JPEG, PNG or SVG into `features/greenscreen/backgrounds/`, ideally 3:2 and at least the camera's
+resolution (see the `README.txt` there). No restart needed. Live view on the tablet still shows the green cloth.
 
 Module `features/greenscreen/` (see [Feature modules](#feature-modules)): settings and routes (`index.js`),
-images (`images.js`), pixel work (`key.js`, `worker.js`), the `/admin` card (`public/`); the backgrounds are in
-`backgrounds/`.
+images (`images.js`), pixel work (`key.js`, `worker.js`), the `/admin` card (`public/`), backgrounds (`backgrounds/`).
 
 ## Automatic or manual focus
 
@@ -308,7 +307,7 @@ The admin page adapts by itself: help texts provided by the driver, sections hid
 | `PUID` / `PGID` | 1000 | Owner of the files created in the photos folder |
 | `PHOTOS_PATH`, `PHOTOS_CREATE`, `PHOTOS_EXTERNAL`, `STORAGE_MIN_FREE_MB` | see [Photos folder](#photos-folder) | Photos folder on the host |
 | `JOURNAL_MAX_ENTRIES`, `JOURNAL_MAX_BYTES`, `JOURNAL_MAX_PER_MINUTE` | 5000, 2097152, 120 | Limits of the [event journal](#event-journal) |
-| `BACKGROUNDS_DIR` | `backgrounds/` (mounted from the project) | [Green screen](#green-screen) backgrounds |
+| `BACKGROUNDS_DIR` | `features/greenscreen/backgrounds/` (mounted from the project) | [Green screen](#green-screen) backgrounds |
 
 ## The camera stops responding ("PTP Timeout")
 

@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Frame images: PNG (transparent) or SVG files from the frames/ folder.
+ * Frame images: PNG (transparent) or SVG files from the frames/ folder of this module.
  * In SVGs, {{title}} and {{date}} are replaced at render time.
  */
 
@@ -10,7 +10,7 @@ const fsp = require('fs').promises;
 const sharp = require('sharp');
 const { toRaw, rawLayer } = require('../../server/photo');
 
-const FRAMES_DIR = path.resolve(process.env.FRAMES_DIR || path.join(__dirname, '..', '..', 'frames'));
+const FRAMES_DIR = path.resolve(process.env.FRAMES_DIR || path.join(__dirname, 'frames'));
 const FRAME_RE = /\.(png|svg)$/i;
 
 const xmlEscape = (s) => String(s).replace(/[<>&'"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c]));

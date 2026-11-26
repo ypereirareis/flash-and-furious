@@ -6,6 +6,7 @@ viewBox 0 0 1500 1000). They are cropped to fill the photo (portrait photos incl
 For a JPEG or PNG, use at least the camera's resolution so the background stays sharp.
 
 The displayed name comes from the SVG <title> tag, otherwise from the file name. It can be
-translated with a "backgrounds.<file name without extension>" entry in public/locales/*.json.
+translated with a "backgrounds.<file name without extension>" entry of the "greenscreen" block
+in features/greenscreen/locales/*.json.
 Backgrounds are sorted by file name (hence the 01-, 02-... prefix).
 No restart needed: the list is read again every time /admin is opened.

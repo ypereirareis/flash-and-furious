@@ -7,7 +7,8 @@ Drop frames here:
   with the frame text (set in /admin) and today's date (in the UI language).
 
 The displayed name comes from the SVG <title> tag, otherwise from the file name. It can be
-translated with a "frames.<file name without extension>" entry in public/locales/*.json.
+translated with a "names.<file name without extension>" entry of the "frames" block in
+features/frames/locales/*.json.
 Frames are sorted by file name (hence the 01-, 02-... prefix).
 No restart needed: the list is read again every time the frame picker is opened.
 

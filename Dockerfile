@@ -46,10 +46,6 @@ COPY server ./server
 COPY public ./public
 # feature modules (FEATURES): delete a folder of features/ to remove a module
 COPY features ./features
-# frames (module features/frames/)
-COPY frames ./frames
-# backgrounds (module features/greenscreen/)
-COPY backgrounds ./backgrounds
 # Checks and prepares the photos folder on every start (idempotent), then runs the CMD
 COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 

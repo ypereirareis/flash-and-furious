@@ -6,6 +6,7 @@
  *
  *   index.js   settings, routes, journal entries, its edit of the photos
  *   render.js  the frame images: list, rendering, previews
+ *   frames/    the frames (PNG or SVG), editable without rebuilding the image
  *   public/    the frame over live view (booth.js), the /admin card (admin.js), styles
  * See server/features.js for how modules plug in.
  */

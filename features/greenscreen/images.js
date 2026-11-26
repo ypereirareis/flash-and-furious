@@ -14,7 +14,7 @@ const { Worker } = require('worker_threads');
 const sharp = require('sharp');
 const key = require('./key');
 
-const BACKGROUNDS_DIR = path.resolve(process.env.BACKGROUNDS_DIR || path.join(__dirname, '..', '..', 'backgrounds'));
+const BACKGROUNDS_DIR = path.resolve(process.env.BACKGROUNDS_DIR || path.join(__dirname, 'backgrounds'));
 const BACKGROUND_RE = /\.(jpe?g|png|svg)$/i;
 
 function labelFromFile(file) {

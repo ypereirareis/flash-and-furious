@@ -20,10 +20,10 @@ services:
           # missing folder: created (then handed over to PUID:PGID by the entrypoint),
           # or "false" to refuse to start instead
           create_host_path: ${PHOTOS_CREATE:-true}
-      # Frames (optional): transparent PNG or SVG, editable without rebuilding the image
-      - ./frames:/app/frames:ro
-      # Green screen (optional) backgrounds (JPEG, PNG or SVG), editable without rebuilding the image
-      - ./backgrounds:/app/backgrounds:ro
+      # Frames (module frames): transparent PNG or SVG, editable without rebuilding the image
+      - ./features/frames/frames:/app/features/frames/frames:ro
+      # Backgrounds (module greenscreen): JPEG, PNG or SVG, editable without rebuilding the image
+      - ./features/greenscreen/backgrounds:/app/features/greenscreen/backgrounds:ro
       # Settings saved from /admin
       - ./config:/app/config
       # USB bus mounted as a volume (not as a "device") to support
