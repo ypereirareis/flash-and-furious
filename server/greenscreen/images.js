@@ -36,13 +36,21 @@ async function list() {
   const out = [];
   for (const file of entries.filter((f) => BACKGROUND_RE.test(f) && !f.startsWith('.')).sort()) {
     const full = path.join(BACKGROUNDS_DIR, file);
-    const st = await fsp.stat(full);
     let label = labelFromFile(file);
-    if (/\.svg$/i.test(file)) {
-      const m = (await fsp.readFile(full, 'utf8')).match(/<title>([^<]+)<\/title>/i);
-      if (m) label = m[1].trim();
+    let mtime;
+    // one open file for its date and its contents (both read from the same file)
+    const fh = await fsp.open(full, 'r').catch(() => null);
+    if (!fh) continue;
+    try {
+      mtime = (await fh.stat()).mtimeMs;
+      if (/\.svg$/i.test(file)) {
+        const m = (await fh.readFile('utf8')).match(/<title>([^<]+)<\/title>/i);
+        if (m) label = m[1].trim();
+      }
+    } finally {
+      await fh.close();
     }
-    out.push({ id: path.basename(file, path.extname(file)), label, file: full, mtime: st.mtimeMs });
+    out.push({ id: path.basename(file, path.extname(file)), label, file: full, mtime });
   }
   return out;
 }
