@@ -8,10 +8,9 @@
  *   index.js   settings, routes, journal entries, and the hooks used by the server;
  *   images.js  backgrounds, calibration, previews, the green replaced on a photo;
  *   key.js     the pixel work; worker.js  runs it in a worker thread.
- * Outside of it: public/admin-green.js and admin-green.css (admin card), the "greenscreen"
- * block of public/locales/*.json, the backgrounds/ folder, and a few lines marked
- * "green screen" in server/index.js, public/admin.html, public/app.js, Dockerfile and
- * docker-compose.yml.
+ * Outside of it: public/greenscreen/ (admin card), the "greenscreen" block of
+ * public/locales/*.json, the backgrounds/ folder, and a few lines marked "green screen" in
+ * server/index.js, public/admin.html, Dockerfile and docker-compose.yml.
  *
  * GREEN_SCREEN=off disables it: no admin card, no routes, photos never changed. Its saved
  * settings are kept for when it is switched back on.
@@ -89,10 +88,16 @@ async function forShot(conf = settings.get()) {
   return ENABLED && conf.greenScreen ? greenOf(conf) : null;
 }
 
-/** The step replacing the green, for frames.apply({ retouch }), or null without green screen. */
+/** The step replacing the green, for photo.process({ retouch }), or null without green screen. */
 function retouch(green) {
   return green ? (img) => images.composite(img, green) : null;
 }
+
+/** Message on the tablet while the photo is processed ({ icon, key }), or null. */
+const step = (green) => (green ? { icon: '🏝️', key: 'greenscreen.booth.applyingBackground' } : null);
+
+/** Part of the journal entry of a photo ("“Beach” background"), or null. */
+const journalDetail = (green) => (green ? { key: 'greenscreen.journal.with', vars: { background: green.background.label } } : null);
 
 /** Fields of the settings sent to /admin (none when off: the admin card stays hidden). */
 async function settingsDto(conf = settings.get()) {
@@ -214,4 +219,4 @@ function router(ctx) {
   return r;
 }
 
-module.exports = { ENABLED, forShot, retouch, settingsDto, settingsPatch, journalSettings, router, images };
+module.exports = { ENABLED, forShot, retouch, step, journalDetail, settingsDto, settingsPatch, journalSettings, router, images };

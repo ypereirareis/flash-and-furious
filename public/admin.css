@@ -38,9 +38,9 @@ body.admin { overflow-y: auto; }
 .text-btn { border: 0; background: none; color: var(--muted); font-size: 19px; text-decoration: underline; padding: 10px; }
 
 /* Frames */
-.admin .frame-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
-.frame-tile { position: relative; }
-.frame-tile.selected::after { content: "✓"; position: absolute; top: 18px; right: 18px; width: 40px; height: 40px; border-radius: 50%;
+.admin .pick-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.pick-tile { position: relative; }
+.pick-tile.selected::after { content: "✓"; position: absolute; top: 18px; right: 18px; width: 40px; height: 40px; border-radius: 50%;
   display: grid; place-items: center; background: var(--sun); color: #2a1450; font-size: 24px; font-weight: 700; }
 
 @media (max-width: 700px) {
@@ -49,16 +49,6 @@ body.admin { overflow-y: auto; }
 }
 
 .switch-row[hidden], .card[hidden] { display: none; }
-
-/* Frame text */
-.title-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
-.title-form label { font-size: 20px; font-weight: 600; }
-.title-form small { color: var(--muted); font-size: 16px; }
-.title-row { display: flex; gap: 12px; flex-wrap: wrap; }
-.title-row input { flex: 1; min-width: 240px; height: 64px; padding: 0 20px; border-radius: 18px; border: 2px solid var(--line);
-  background: var(--panel-strong); color: var(--text); font: inherit; font-size: 24px; outline: none; }
-.title-row input:focus { border-color: var(--sun); }
-.big-btn.save-btn { width: auto; height: 64px; padding: 0 28px; background: var(--sun); color: #2a1450; }
 
 /* Colour themes */
 .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px; }

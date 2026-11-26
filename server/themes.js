@@ -94,15 +94,10 @@ const THEMES = [
 ];
 
 const DEFAULT_THEME = 'night';
-// Ids used by earlier versions (saved settings), mapped to the current ones
-const LEGACY_IDS = {
-  nuit: 'night', foret: 'forest', coucher: 'sunset', bonbon: 'candy', dore: 'gold', minuit: 'black',
-  noel: 'christmas', acidule: 'acid', mariage: 'wedding', anniversaire: 'birthday',
-};
 const DECO_DIR = path.join(__dirname, '..', 'public', 'deco');
 
 /**
- * SVG decoration files of a theme (to also add them to framed photos),
+ * SVG decoration files of a theme (to also add them to the photos, see decorations.js),
  * or null if the theme has none. { id, corner: path, top: path }
  */
 function decoFiles(id) {
@@ -142,4 +137,4 @@ function css() {
   }).join('\n\n') + '\n';
 }
 
-module.exports = { list, css, isValid, decoFiles, DEFAULT_THEME, LEGACY_IDS };
+module.exports = { list, css, isValid, decoFiles, DEFAULT_THEME };

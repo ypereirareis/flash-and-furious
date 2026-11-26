@@ -3,14 +3,15 @@
 const path = require('path');
 const fs = require('fs');
 const fsp = fs.promises;
-const crypto = require('crypto');
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const sharp = require('sharp');
 const QRCode = require('qrcode');
 const camera = require('./cameras'); // camera driver (CAMERA_DRIVER)
 const live = require('./live');
-const frames = require('./frames');
+const photo = require('./photo');
+const decorations = require('./decorations');
+const frames = require('./frames'); // optional feature (FRAMES=off), see its index.js
 const greenscreen = require('./greenscreen'); // optional feature (GREEN_SCREEN=off), see its index.js
 const settings = require('./settings');
 const themes = require('./themes');
@@ -133,9 +134,13 @@ live.on('state', ({ state: s, textKey }) => {
 /* ------------------------------------------------------------------ */
 /* Event journal (/admin)                                              */
 /* ------------------------------------------------------------------ */
-/** Journal entry in the current UI language; a value can itself be a message ({ key } or { camera }). */
+/**
+ * Journal entry in the current UI language. A value can itself be a message ({ key } or
+ * { camera }), or a list of messages (joined with commas).
+ */
 function journalDto(e) {
-  const vars = Object.fromEntries(Object.entries(e.vars || {}).map(([k, v]) => [k, v && typeof v === 'object' ? translate(v) : v]));
+  const text = (v) => (Array.isArray(v) ? v.map(translate).join(', ') : v && typeof v === 'object' ? translate(v) : v);
+  const vars = Object.fromEntries(Object.entries(e.vars || {}).map(([k, v]) => [k, text(v)]));
   return { id: e.id, at: e.at, level: e.level, category: e.category, message: tr(e.key, vars), detail: e.detail || null };
 }
 journal.onAdd((e) => broadcast({ type: 'journal', entry: journalDto(e) }));
@@ -205,29 +210,6 @@ async function resized(name, kind) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Frames and decorations                                              */
-/* ------------------------------------------------------------------ */
-// Theme decorations to add to framed photos (/admin option), or null
-function currentDeco(conf = settings.get()) {
-  return conf.frameDeco ? themes.decoFiles(conf.theme) : null;
-}
-// Everything that changes how a frame looks: title, date language, decorations
-function frameOptions(conf = settings.get()) {
-  return { title: conf.frameTitle, locale: i18n.t(conf.lang, 'locale'), deco: currentDeco(conf) };
-}
-// Frame preview URL; changes with the file and the frame options (browser cache busting)
-function framePreviewUrl(f) {
-  const o = frameOptions();
-  const t = crypto.createHash('md5').update(`${o.title}|${o.locale}|${o.deco ? o.deco.id : ''}`).digest('hex').slice(0, 8);
-  return `/api/frames/${encodeURIComponent(f.id)}.png?v=${Math.round(f.mtime)}-${t}`;
-}
-// Frame name in the UI language (falls back to the SVG <title> or the file name)
-function frameLabel(f) {
-  const key = `frames.${f.id}`;
-  return i18n.has(lang(), key) ? tr(key) : f.label;
-}
-
-/* ------------------------------------------------------------------ */
 /* Shooting                                                            */
 /* ------------------------------------------------------------------ */
 const state = { busy: false, phase: 'idle', camera: null, cameraError: null, focusMode: null };
@@ -280,7 +262,11 @@ async function captureAside(name, fn) {
   }
 }
 
-async function runShoot(delay, useLive, frame, { bw = false, green = null } = {}) {
+/**
+ * A photo, from the countdown to the gallery. `edits`: what is applied to it, frozen at the
+ * time of the shot: { frame, green, deco, bw } (see edit()).
+ */
+async function runShoot(delay, useLive, edits) {
   state.busy = true;
   const baseName = `flash-and-furious_${timestamp()}`;
   let focusJob = null;
@@ -365,7 +351,7 @@ async function runShoot(delay, useLive, frame, { bw = false, green = null } = {}
     console.log(`[shoot] ${files.join(', ') || 'no file'} in ${Date.now() - before} ms`);
 
     if (!jpeg) throw fail({ key: files.length ? 'shoot.noJpeg' : 'shoot.noFiles' }, 'no jpeg');
-    if (frame || bw || green) await processPhoto(frame, files, jpeg, { bw, green });
+    if (hasEdits(edits)) await processPhoto(files, jpeg, edits);
     const job = processing.get(jpeg);
     const mtime = job ? job.mtime : (await fsp.stat(path.join(PHOTOS_DIR, jpeg))).mtimeMs;
     // Pre-generate the screen versions: the tablet one is awaited, the 4K one (TV)
@@ -374,9 +360,8 @@ async function runShoot(delay, useLive, frame, { bw = false, green = null } = {}
     resized(jpeg, 'tv').catch(() => {});
     const photo = toDto({ name: jpeg, mtime });
     broadcast({ type: 'photo', photo });
-    const taken = `${green ? 'greenscreen.' : ''}journal.photo${frame ? 'Frame' : ''}${bw ? 'Bw' : ''}`;
-    const vars = { ...(frame ? { frame: frame.label } : {}), ...(green ? { background: green.background.label } : {}) };
-    journal.add('success', 'photo', taken, vars, jpeg);
+    const details = editDetails(edits);
+    journal.add('success', 'photo', details.length ? 'journal.photoWith' : 'journal.photo', details.length ? { details } : {}, jpeg);
     setPhase('idle');
   } catch (err) {
     console.error('[shoot] error:', err.stderr || err.message);
@@ -391,8 +376,31 @@ async function runShoot(delay, useLive, frame, { bw = false, green = null } = {}
 }
 
 /* ------------------------------------------------------------------ */
-/* Photo processing (green screen, frame, black & white)               */
+/* Photo processing (green screen, black & white, frame, decorations)  */
 /* ------------------------------------------------------------------ */
+// The edits of a photo: { frame, green, deco, bw }. frame and green come from optional
+// features (null when off); deco: theme decorations (decorations.js).
+const hasEdits = ({ frame, green, deco, bw }) => Boolean(frame || green || deco || bw);
+/** Applies the edits of a photo to `src`, written to `dst` (JPEG). */
+function edit({ frame, green, deco, bw }, src, dst, opts = {}) {
+  const overlays = [frames.overlay(frame), decorations.overlay(deco)].filter(Boolean);
+  return photo.process(src, dst, { retouch: greenscreen.retouch(green), bw, overlays, ...opts });
+}
+/** Message on the tablet while a photo is processed: { icon, message }. */
+function editStep({ frame, green, bw }) {
+  const s = frames.step(frame) || greenscreen.step(green) || (bw ? { icon: '🎞️', key: 'booth.applyingBw' } : { icon: '✨', key: 'booth.addingDeco' });
+  return { icon: s.icon, message: tr(s.key) };
+}
+/** Details of the journal entry of a photo, as messages ("“Beach” background", "black & white"…). */
+function editDetails({ frame, green, deco, bw }) {
+  return [
+    greenscreen.journalDetail(green),
+    frames.journalDetail(frame),
+    deco && { key: 'journal.with.deco' },
+    bw && { key: 'journal.with.bw' },
+  ].filter(Boolean);
+}
+
 // The guests only wait for the tablet version (1920 px, a fraction of a second); the
 // full-size photo, then its 4K version for the TV, are computed afterwards in a queue,
 // one photo at a time, so the next shot can start right away.
@@ -405,26 +413,26 @@ const screenFile = (name) => path.join(CACHE_DIR, `view_${name}`);
 const jobFile = (name) => path.join(CACHE_DIR, `pending_${name}.json`);
 
 /**
- * Green screen, frame and/or black & white: the original files (JPEG, RAW; in colour, without frame)
- * move to photos/originals/ and the processed version takes the photo's name in photos/.
+ * Edited photo: the original files (JPEG, RAW; as taken) move to photos/originals/ and the
+ * edited version takes the photo's name in photos/.
  */
-async function processPhoto(frame, files, jpeg, { bw = false, green = null } = {}) {
-  const what = [green && `background "${green.background.label}"`, frame && `frame "${frame.label}"`, bw && 'black & white'].filter(Boolean).join(' + ');
-  setPhase('framing', { frame: frame ? frame.label : null, bw, green: Boolean(green) });
+async function processPhoto(files, jpeg, edits) {
+  const what = editDetails(edits).map(translate).join(' + ');
+  setPhase('framing', editStep(edits));
   const t = Date.now();
   for (const f of files) await fsp.rename(path.join(PHOTOS_DIR, f), path.join(ORIGINALS_DIR, f));
   const original = path.join(ORIGINALS_DIR, jpeg);
-  const job = { name: jpeg, frame, bw, green, mtime: Date.now() };
+  const job = { name: jpeg, ...edits, mtime: Date.now() };
   try {
     const tmp = `${screenFile(jpeg)}.tmp`;
-    await frames.apply(frame, original, tmp, { bw, retouch: greenscreen.retouch(green), maxSize: SIZES.view, quality: QUALITY.view });
+    await edit(job, original, tmp, { maxSize: SIZES.view, quality: QUALITY.view });
     await fsp.rename(tmp, screenFile(jpeg));
     chownSafe(screenFile(jpeg));
     await fsp.writeFile(jobFile(jpeg), JSON.stringify(job));
     chownSafe(jobFile(jpeg));
-    console.log(`[frame] ${what}: screen version in ${Date.now() - t} ms, full size queued`);
+    console.log(`[photo] ${what}: screen version in ${Date.now() - t} ms, full size queued`);
   } catch (err) {
-    console.error('[frame] failed:', err.message);
+    console.error('[photo] edit failed:', err.message);
     await fsp.rm(screenFile(jpeg), { force: true });
     await fsp.copyFile(original, path.join(PHOTOS_DIR, jpeg)); // the photo stays visible, as is
     chownSafe(path.join(PHOTOS_DIR, jpeg));
@@ -438,26 +446,27 @@ async function processPhoto(frame, files, jpeg, { bw = false, green = null } = {
 function queueFullSize(job) {
   const done = processingQueue
     .then(() => fullSize(job))
-    .catch((err) => console.error(`[frame] ${job.name}:`, err.message));
+    .catch((err) => console.error(`[photo] ${job.name}:`, err.message));
   processing.set(job.name, { mtime: job.mtime, done });
   processingQueue = done;
 }
 
 /** Full-size version of a queued photo, written to photos/ once complete. */
-async function fullSize({ name, frame, bw, green = null, mtime }) {
+async function fullSize(job) {
+  const { name, mtime } = job;
   const original = path.join(ORIGINALS_DIR, name);
   const target = path.join(PHOTOS_DIR, name);
   const tmp = path.join(PHOTOS_DIR, `.${name}.tmp`); // hidden: not listed while being written
   const t = Date.now();
   try {
-    await frames.apply(frame, original, tmp, { bw, retouch: greenscreen.retouch(green) });
+    await edit(job, original, tmp);
     await fsp.rename(tmp, target);
-    console.log(`[frame] ${name}: full size in ${Date.now() - t} ms`);
+    console.log(`[photo] ${name}: full size in ${Date.now() - t} ms`);
   } catch (err) {
-    console.error(`[frame] ${name}: full size failed:`, err.message);
+    console.error(`[photo] ${name}: full size failed:`, err.message);
     await fsp.rm(tmp, { force: true });
     await fsp.copyFile(original, target); // the photo stays, as is
-    // the screen versions show the frame: they are made again from the photo as is
+    // the screen versions show the edits: they are made again from the photo as is
     await Promise.all(Object.keys(SIZES).map((k) => fsp.rm(path.join(CACHE_DIR, `${k}_${name}`), { force: true })));
     broadcast({ type: 'error', message: tr('shoot.retouchFailed') });
     journal.add('warning', 'photo', 'journal.retouchFailed', {}, name);
@@ -485,11 +494,11 @@ async function resumeProcessing() {
     try {
       const job = JSON.parse(await fsp.readFile(path.join(CACHE_DIR, f), 'utf8'));
       if (!safeName(job.name) || `pending_${job.name}.json` !== f) throw new Error('invalid job');
-      console.log(`[frame] ${job.name}: full size resumed`);
+      console.log(`[photo] ${job.name}: full size resumed`);
       queueFullSize(job);
       resumed += 1;
     } catch (err) {
-      console.error(`[frame] ${f}: cannot resume (${err.message})`);
+      console.error(`[photo] ${f}: cannot resume (${err.message})`);
     }
   }
   if (resumed) journal.add('info', 'photo', 'journal.resumed', { count: resumed });
@@ -605,7 +614,6 @@ app.use(
     },
   })
 );
-app.get('/diaporama', (_req, res) => res.redirect(301, '/slideshow')); // old address
 app.use(express.static(path.join(__dirname, '..', 'public'), { extensions: ['html'], cacheControl: false, etag: false, lastModified: false }));
 // No direct access to the original files: photos are retrieved on the host (photos/ folder).
 
@@ -628,23 +636,22 @@ app.post('/api/shoot', async (req, res) => {
   // Everything is decided by the admin settings (/admin), not by the tablet
   const delay = DEFAULT_DELAY;
   const conf = settings.get();
-  const found = await frames.get(conf.frame).catch(() => null);
-  // text and decorations frozen at the time of the photo
-  const frame = found ? { ...found, label: frameLabel(found), ...frameOptions(conf) } : null;
-  const useLive = conf.live;
-  const bw = Boolean(req.body && req.body.bw); // chosen by the guests on the tablet
-  const green = await greenscreen.forShot(conf);
-  runShoot(delay, useLive, frame, { bw, green }); // asynchronous: progress is sent through /api/events
+  const edits = {
+    frame: await frames.forShot(conf), // text and date frozen at the time of the photo
+    green: await greenscreen.forShot(conf),
+    deco: decorations.forPhoto(conf),
+    bw: Boolean(req.body && req.body.bw), // chosen by the guests on the tablet
+  };
+  runShoot(delay, conf.live, edits); // asynchronous: progress is sent through /api/events
   res.status(202).json({ ok: true, delay });
 });
 
 /* ---------- Settings (admin) ---------- */
 async function settingsDto() {
   const conf = settings.get();
-  const frame = await frames.get(conf.frame).catch(() => null);
   return {
     ...conf,
-    frame: frame ? { id: frame.id, label: frameLabel(frame), preview: framePreviewUrl(frame) } : null,
+    ...(await frames.settingsDto(conf)),
     ...(await greenscreen.settingsDto(conf)),
   };
 }
@@ -662,8 +669,7 @@ app.put('/api/settings', async (req, res) => {
   const patch = {};
   if ('mirror' in b) patch.mirror = Boolean(b.mirror);
   if ('live' in b) patch.live = Boolean(b.live);
-  if ('frameTitle' in b) patch.frameTitle = String(b.frameTitle ?? '');
-  if ('frameDeco' in b) patch.frameDeco = Boolean(b.frameDeco);
+  if ('photoDeco' in b) patch.photoDeco = Boolean(b.photoDeco);
   if ('theme' in b) {
     if (!themes.isValid(b.theme)) return res.status(400).json({ error: tr('settings.unknownTheme') });
     patch.theme = b.theme;
@@ -672,13 +678,12 @@ app.put('/api/settings', async (req, res) => {
     if (!i18n.isValid(b.lang)) return res.status(400).json({ error: tr('settings.unknownLang') });
     patch.lang = b.lang;
   }
-  if ('frame' in b) {
-    if (b.frame && !(await frames.get(b.frame))) return res.status(400).json({ error: tr('settings.unknownFrame') });
-    patch.frame = b.frame || null;
+  // optional features: their own settings
+  for (const feature of [frames, greenscreen]) {
+    const r = await feature.settingsPatch(b);
+    if (r.error) return res.status(400).json({ error: r.error });
+    Object.assign(patch, r.patch);
   }
-  const green = await greenscreen.settingsPatch(b);
-  if (green.error) return res.status(400).json({ error: green.error });
-  Object.assign(patch, green.patch);
   const old = settings.get();
   await settings.update(patch, chownSafe);
   await journalSettings(old, settings.get());
@@ -689,14 +694,9 @@ app.put('/api/settings', async (req, res) => {
 /** Settings changed in /admin, one journal entry per change. */
 async function journalSettings(old, now) {
   const add = (key, vars) => journal.add('info', 'settings', key, vars);
-  if (now.frame !== old.frame) {
-    const f = now.frame && (await frames.get(now.frame).catch(() => null));
-    if (f) add('journal.settingFrame', { value: frameLabel(f) });
-    else add('journal.settingNoFrame');
-  }
-  if (now.frameTitle !== old.frameTitle) add('journal.settingTitle', { value: now.frameTitle });
+  await frames.journalSettings(old, now, add);
   if (now.theme !== old.theme) add('journal.settingTheme', { value: { key: `themes.${now.theme}` } });
-  if (now.frameDeco !== old.frameDeco) add(now.frameDeco ? 'journal.settingDecoOn' : 'journal.settingDecoOff');
+  if (now.photoDeco !== old.photoDeco) add(now.photoDeco ? 'journal.settingDecoOn' : 'journal.settingDecoOff');
   if (now.live !== old.live) add(now.live ? 'journal.settingLiveOn' : 'journal.settingLiveOff');
   if (now.mirror !== old.mirror) add(now.mirror ? 'journal.settingMirrorOn' : 'journal.settingMirrorOff');
   if (now.lang !== old.lang) add('journal.settingLang', { value: (i18n.list().find((l) => l.id === now.lang) || {}).label });
@@ -769,21 +769,8 @@ app.get('/api/journal', (req, res) => {
   res.json({ entries: entries.map(journalDto), more });
 });
 
-app.get('/api/frames', async (_req, res) => {
-  const list = await frames.list();
-  res.json(list.map((f) => ({ id: f.id, label: frameLabel(f), preview: framePreviewUrl(f) })));
-});
-
-app.get('/api/frames/:id.png', async (req, res) => {
-  const frame = await frames.get(req.params.id);
-  if (!frame) return res.sendStatus(404);
-  try {
-    res.type('png').send(await frames.preview(frame, frameOptions()));
-  } catch (err) {
-    console.error('[frame] preview:', err.message);
-    res.sendStatus(500);
-  }
-});
+/* ---------- Frames (optional feature: server/frames/) ---------- */
+if (frames.ENABLED) app.use(frames.router());
 
 /* ---------- Green screen (optional feature: server/greenscreen/) ---------- */
 if (greenscreen.ENABLED) app.use(greenscreen.router({ cameraUnavailable, captureAside, settingsChanged, translate, chownSafe }));

@@ -33,12 +33,11 @@ test('start-up written: booth started, camera ready', async () => {
   assert.equal(camera.message, 'Camera ready: Canon EOS 1000D');
 });
 
-test('photo written with its frame and file name, sent live to /admin', async () => {
-  await server.settings({ frame: '01-polaroid' });
+test('photo written with its edits and file name, sent live to /admin', async () => {
   const from = server.events.list.length;
   const shot = await shoot(server, { bw: true });
   const [last] = (await server.json('/api/journal?limit=1')).entries;
-  assert.equal(last.message, 'Photo taken in black & white with the “Polaroid” frame');
+  assert.equal(last.message, 'Photo taken: black & white');
   assert.equal(last.detail, shot.photo.name);
   assert.equal(last.level, 'success');
   const live = server.events.list.slice(from).filter((e) => e.type === 'journal').map((e) => e.entry.message);
@@ -46,12 +45,11 @@ test('photo written with its frame and file name, sent live to /admin', async ()
 });
 
 test('settings changes: one entry each', async () => {
-  await server.settings({ frame: '02-party', theme: 'birthday', frameTitle: 'Coucou Marjo', live: true, mirror: false, frameDeco: true });
-  await server.settings({ frame: null, live: false, mirror: true, frameDeco: false });
-  const recent = (await messages()).slice(0, 10);
-  for (const m of ['Frame: Party', 'Theme: Birthday', 'Frame text: “Coucou Marjo”', 'Live view during the countdown: on',
-    'Mirror effect: off', 'Theme decorations on photos: on', 'Frame: none', 'Live view during the countdown: off',
-    'Mirror effect: on', 'Theme decorations on photos: off']) {
+  await server.settings({ theme: 'birthday', live: true, mirror: false, photoDeco: true });
+  await server.settings({ live: false, mirror: true, photoDeco: false });
+  const recent = (await messages()).slice(0, 7);
+  for (const m of ['Theme: Birthday', 'Live view during the countdown: on', 'Mirror effect: off', 'Theme decorations on photos: on',
+    'Live view during the countdown: off', 'Mirror effect: on', 'Theme decorations on photos: off']) {
     assert.ok(recent.includes(m), m);
   }
 });

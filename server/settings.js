@@ -17,17 +17,10 @@ const ENV_LANG = process.env.DEFAULT_LANG;
 const DEFAULTS = {
   mirror: true, // live view mirrored on the tablet
   live: false, // live view during the countdown
-  frame: null, // id of the applied frame (null = no frame)
-  frameTitle: process.env.FRAME_TITLE || 'Flash & Furious', // {{title}} text of every frame
   theme: themes.DEFAULT_THEME, // UI colour theme (see themes.js)
-  frameDeco: false, // also add the theme's SVG decorations to framed photos
+  photoDeco: false, // also add the theme's SVG decorations to the photos
   lang: i18n.isValid(ENV_LANG) ? ENV_LANG : i18n.FALLBACK, // UI language (public/locales/)
 };
-const MAX_TITLE = 60;
-
-// Ids used by earlier versions, mapped to the current ones
-const LEGACY_FRAMES = { '02-fete': '02-party' };
-
 /**
  * Settings added by an optional feature (e.g. the green screen): its defaults, and a
  * function cleaning up its values. Saved in the same file.
@@ -54,15 +47,11 @@ function load() {
 const allDefaults = () => Object.assign({ ...DEFAULTS }, ...extensions.map((e) => e.defaults));
 
 function sanitize(s) {
-  const frame = LEGACY_FRAMES[s.frame] || s.frame;
-  const theme = themes.LEGACY_IDS[s.theme] || s.theme;
   const base = {
     mirror: Boolean(s.mirror),
     live: Boolean(s.live),
-    frame: typeof frame === 'string' && /^[\w.-]+$/.test(frame) ? frame : null,
-    frameTitle: typeof s.frameTitle === 'string' ? s.frameTitle.replace(/\s+/g, ' ').trim().slice(0, MAX_TITLE) : DEFAULTS.frameTitle,
-    theme: themes.isValid(theme) ? theme : DEFAULTS.theme,
-    frameDeco: Boolean(s.frameDeco),
+    theme: themes.isValid(s.theme) ? s.theme : DEFAULTS.theme,
+    photoDeco: Boolean(s.photoDeco),
     lang: i18n.isValid(s.lang) ? s.lang : DEFAULTS.lang,
   };
   return Object.assign(base, ...extensions.map((e) => e.clean(s)));
@@ -83,4 +72,4 @@ async function update(patch, chown) {
   return get();
 }
 
-module.exports = { load, get, update, extend, CONFIG_DIR, MAX_TITLE };
+module.exports = { load, get, update, extend, CONFIG_DIR };

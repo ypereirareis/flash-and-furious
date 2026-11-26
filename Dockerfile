@@ -44,6 +44,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json ./
 COPY server ./server
 COPY public ./public
+# frames (optional)
 COPY frames ./frames
 # green screen (optional) backgrounds
 COPY backgrounds ./backgrounds

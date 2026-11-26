@@ -12,6 +12,7 @@
   <title>Flash &amp; Furious</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="themes.css" />
+  <link rel="stylesheet" href="frames/frames.css" /><!-- frames (optional) -->
 </head>
 <body>
   <main id="view-shoot" class="view active">
@@ -19,7 +20,6 @@
       <div class="stage" id="stage">
         <img id="live" class="live mirrored" alt="" hidden />
         <img id="review" class="review" alt="" hidden />
-        <img id="frameOverlay" class="frame-overlay" alt="" hidden />
         <span id="lastBadge" class="last-badge" hidden data-i18n="booth.lastPhoto">Last photo</span>
         <p id="liveMsg" class="live-msg" hidden></p>
       </div>
@@ -78,6 +78,7 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="i18n.js"></script>
+  <script src="frames/booth.js"></script><!-- frames (optional) -->
   <script src="app.js"></script>
 </body>
 </html>

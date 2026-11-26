@@ -13,7 +13,7 @@ let server;
 test.before(async () => { server = await startServer('shots'); });
 test.after(() => server.stop());
 
-/** Checks everything a processed photo (frame and/or black & white) must have. */
+/** Checks everything an edited photo (black & white, decorations...) must have. */
 async function checkProcessed(shot) {
   const { name } = shot.photo;
   await waitFullSize(server, name);
@@ -44,9 +44,8 @@ async function checkServed(dto, file) {
   }
 }
 
-test('photo without frame', async () => {
-  await server.settings({ frame: null });
-  const shot = await shoot(server, { label: 'no frame' });
+test('photo as taken', async () => {
+  const shot = await shoot(server, { label: 'as taken' });
   assert.equal(shot.status, 202);
   assert.deepEqual(shot.errors, []);
   assert.ok(shot.photo, 'photo event');
@@ -58,39 +57,31 @@ test('photo without frame', async () => {
   assert.equal(list[0].name, shot.photo.name);
 });
 
-test('photo with a frame, in colour', async () => {
-  await server.settings({ frame: '01-polaroid', frameTitle: 'Functional tests', frameDeco: false });
-  const shot = await shoot(server, { label: 'frame, colour' });
+test('photo in black & white', async () => {
+  const shot = await shoot(server, { bw: true, label: 'B&W' });
   assert.deepEqual(shot.errors, []);
-  const final = await checkProcessed(shot);
-  if (!REAL) {
-    const red = await colourAt(final, 0.2, 0.5);
-    assert.ok(red[0] > 150 && red[2] < 100, `red half still red: ${red}`);
-  }
-});
-
-test('photo with a frame, in black & white (the frame keeps its colours)', async () => {
-  await server.settings({ frame: '02-party' });
-  const shot = await shoot(server, { bw: true, label: 'frame, B&W' });
-  assert.deepEqual(shot.errors, []);
+  assert.ok(shot.events.some((e) => e.type === 'phase' && e.phase === 'framing' && e.message === 'Converting to black & white…'), 'tablet told');
   const final = await checkProcessed(shot);
   for (const [x, y] of [[0.3, 0.4], [0.5, 0.5], [0.7, 0.6]]) assert.ok(isGrey(await colourAt(final, x, y)), `grey at ${x},${y}`);
-  const border = await colourAt(final, 0.002, 0.5); // rainbow border of the Party frame
-  assert.ok(!isGrey(border), `frame in colour: ${border}`);
 });
 
-test('photo with a frame and the theme decorations', async () => {
-  await server.settings({ frame: '02-party', theme: 'birthday', frameDeco: true });
-  const shot = await shoot(server, { label: 'frame + decorations' });
+test('theme decorations on a photo without frame, in colour over black & white', async () => {
+  await server.settings({ theme: 'birthday', photoDeco: true });
+  const shot = await shoot(server, { bw: true, label: 'decorations, B&W' });
   assert.deepEqual(shot.errors, []);
-  await checkProcessed(shot);
-  await server.settings({ frameDeco: false });
+  const final = await checkProcessed(shot);
+  const corner = [];
+  for (let x = 0.02; x < 0.25; x += 0.02) corner.push(await colourAt(final, x, 0.9));
+  assert.ok(corner.some((c) => !isGrey(c)), 'drawing in colour in the bottom-left corner');
+  assert.ok(isGrey(await colourAt(final, 0.6, 0.5)), 'photo in grey');
+  const [last] = (await server.json('/api/journal?limit=1')).entries;
+  assert.equal(last.message, 'Photo taken: theme decorations, black & white');
+  await server.settings({ photoDeco: false });
 });
 
 test('camera held upright: portrait photo, the right way up', { skip: fakeOnly }, async () => {
   server.camera.photo(await photos.rotated());
-  await server.settings({ frame: '01-polaroid' });
-  const shot = await shoot(server);
+  const shot = await shoot(server, { bw: true });
   const final = await checkProcessed(shot);
   const [w, h] = await orientedSize(final);
   assert.ok(h > w, 'portrait');
@@ -99,7 +90,7 @@ test('camera held upright: portrait photo, the right way up', { skip: fakeOnly }
 
 test('RAW+JPEG: both files kept aside, only the JPEG in the gallery', { skip: fakeOnly }, async () => {
   server.camera.raw(true);
-  const shot = await shoot(server);
+  const shot = await shoot(server, { bw: true });
   server.camera.raw(false);
   await checkProcessed(shot);
   const base = shot.photo.name.replace(/\.jpg$/, '');
@@ -108,26 +99,7 @@ test('RAW+JPEG: both files kept aside, only the JPEG in the gallery', { skip: fa
   assert.ok(!(await server.json('/api/photos')).some((p) => p.name.endsWith('.cr2')));
 });
 
-test('frame that cannot be applied: photo saved as is, with a message', { skip: fakeOnly }, async () => {
-  // a frame whose file is broken: the photo must not be lost
-  const framesDir = path.join(server.dirs.base, 'frames');
-  fs.mkdirSync(framesDir, { recursive: true });
-  fs.writeFileSync(path.join(framesDir, '09-broken.png'), 'not a png');
-  const other = await startServer('broken-frame', { env: { FRAMES_DIR: framesDir } });
-  try {
-    await other.settings({ frame: '09-broken' });
-    const shot = await shoot(other);
-    assert.ok(shot.photo, 'photo still shown');
-    assert.deepEqual(shot.errors, ['The photo could not be edited: it was saved as is.']);
-    const file = path.join(other.photosDir, shot.photo.name);
-    assert.ok(fs.readFileSync(file).equals(fs.readFileSync(path.join(other.originalsDir, shot.photo.name))), 'photo as is');
-  } finally {
-    await other.stop();
-  }
-});
-
 test('a second photo while one is in progress is refused', async () => {
-  await server.settings({ frame: null });
   const first = server.api('/api/shoot', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
   const second = await server.api('/api/shoot', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
   assert.equal((await first).status, 202);
@@ -137,9 +109,9 @@ test('a second photo while one is in progress is refused', async () => {
 });
 
 test('live view during the countdown, stopped for the capture', async () => {
-  await server.settings({ live: true, frame: '01-polaroid' });
+  await server.settings({ live: true });
   const from = server.events.list.length;
-  const done = shoot(server, { label: 'frame + live view' });
+  const done = shoot(server, { bw: true, label: 'live view, B&W' });
   // the tablet opens the MJPEG stream once live view is on
   await waitFor(() => server.events.list.slice(from).some((e) => e.type === 'live' && e.state === 'on'), { timeout: 20000, what: 'live view' });
   const res = await server.api('/api/live.mjpeg');
@@ -160,7 +132,7 @@ test('live view during the countdown, stopped for the capture', async () => {
 
 test('nothing kept by the browsers: no-store on pages, API and photos', async () => {
   const [p] = await server.json('/api/photos');
-  for (const url of ['/', '/admin', '/slideshow', '/app.js', '/api/photos', '/api/status', '/api/frames/01-polaroid.png', p.thumb, p.view, p.tv]) {
+  for (const url of ['/', '/admin', '/slideshow', '/app.js', '/api/photos', '/api/status', p.thumb, p.view, p.tv]) {
     const res = await server.api(url);
     assert.equal(res.status, 200, url);
     assert.match(res.headers.get('cache-control'), /no-store/, url);
