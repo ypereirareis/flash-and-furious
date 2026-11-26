@@ -10,7 +10,7 @@ const path = require('path');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'settings-'));
 process.env.CONFIG_DIR = dir;
 process.env.DEFAULT_LANG = 'fr';
-const settings = require('../../server/settings');
+const settings = require('../../src/server/settings');
 const file = path.join(dir, 'settings.json');
 
 test.after(() => fs.rmSync(dir, { recursive: true, force: true }));

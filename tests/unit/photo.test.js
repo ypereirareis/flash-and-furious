@@ -1,13 +1,13 @@
 'use strict';
 
-// Processing of a photo (server/photo.js): the stages the feature modules plug into.
+// Processing of a photo (src/server/photo.js): the stages the feature modules plug into.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const sharp = require('sharp');
-const photo = require('../../server/photo');
+const photo = require('../../src/server/photo');
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'photo-'));
 test.after(() => fs.rmSync(tmp, { recursive: true, force: true }));

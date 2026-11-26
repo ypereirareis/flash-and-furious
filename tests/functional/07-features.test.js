@@ -1,6 +1,6 @@
 'use strict';
 
-// Feature modules (features/ folder) chosen with FEATURES: none of them, the app still works.
+// Feature modules (src/features/ folder) chosen with FEATURES: none of them, the app still works.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { fakeOnly, startServer, shoot } = require('./helpers');

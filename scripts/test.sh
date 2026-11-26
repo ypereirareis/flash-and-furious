@@ -37,7 +37,7 @@ run_node() { # run_node <docker options...> -- <node arguments...>
   local opts=()
   while [[ $1 != -- ]]; do opts+=("$1"); shift; done
   shift
-  docker run --rm -e TZ="$tz" -e HOME=/tmp -v "$PWD/tests:/app/tests:ro" -v "$PWD/features:/app/features:ro" --entrypoint node "${opts[@]}" "$IMAGE" "$@"
+  docker run --rm -e TZ="$tz" -e HOME=/tmp -v "$PWD/tests:/app/tests:ro" -v "$PWD/src:/app/src:ro" --entrypoint node "${opts[@]}" "$IMAGE" "$@"
 }
 
 echo "== Building the image =="
@@ -46,13 +46,13 @@ failed=()
 
 if [[ $suite != functional ]]; then
   echo "== Unit tests =="
-  run_node -u "$(id -u):$(id -g)" -- --test --test-reporter=spec 'tests/unit/**/*.test.js' 'features/*/tests/unit/*.test.js' || failed+=(unit)
+  run_node -u "$(id -u):$(id -g)" -- --test --test-reporter=spec 'tests/unit/**/*.test.js' 'src/features/*/tests/unit/*.test.js' || failed+=(unit)
 fi
 
 if [[ $suite != unit ]]; then
   files=()
-  # the app's, then those of the feature modules (features/<id>/tests/functional/)
-  for f in tests/functional/*.test.js features/*/tests/functional/*.test.js; do
+  # the app's, then those of the feature modules (src/features/<id>/tests/functional/)
+  for f in tests/functional/*.test.js src/features/*/tests/functional/*.test.js; do
     [[ -z $only || $(basename "$f") == *"$only"* ]] && files+=("$f")
   done
   if ((${#files[@]} == 0)); then echo "No functional test file matches '$only'" >&2; exit 2; fi

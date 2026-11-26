@@ -1,6 +1,6 @@
 # Green screen module
 
-One of the [feature modules](../../README.md#feature-modules): active when `FEATURES` includes `greenscreen`
+One of the [feature modules](../../../README.md#feature-modules): active when `FEATURES` includes `greenscreen`
 (or is `all`).
 
 Guests pose in front of a green cloth, and the green is replaced with a background: beach, space, party lights
@@ -12,7 +12,7 @@ and city at night are included, in the `backgrounds/` folder. Set it up in `/adm
 3. **Tolerance** (50 = as calibrated): raise it if green remains around people, lower it if parts of people
    disappear. The preview follows.
 
-Every photo then gets the background, with or without a frame, in two steps (see [Photo editing](../../README.md#photo-editing)). In black & white, the background is in black & white too; the frame keeps its
+Every photo then gets the background, with or without a frame, in two steps (see [Photo editing](../../../README.md#photo-editing)). In black & white, the background is in black & white too; the frame keeps its
 colours. The original stays untouched in `photos/originals/`.
 
 How it works: a pixel is cloth when its green is well above its red and blue (by thresholds measured at

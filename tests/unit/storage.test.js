@@ -9,7 +9,7 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
-const STORAGE = path.join(__dirname, '../../server/storage.js');
+const STORAGE = path.join(__dirname, '../../src/server/storage.js');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'storage-'));
 test.after(() => {
   fs.chmodSync(path.join(tmp, 'readonly'), 0o755);

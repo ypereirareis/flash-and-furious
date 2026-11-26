@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Functional test helpers: each test file starts the real server (node server/index.js) as a
+ * Functional test helpers: each test file starts the real server (node src/server/index.js) as a
  * child process, with its own photos and config folders, and drives it through its HTTP API
  * and its events, like the tablet does.
  *
@@ -117,7 +117,7 @@ async function startServer(name, { env = {}, dirs = null, waitCamera = true } = 
     fs.copyFileSync(await photos.live(), path.join(camera.dir, 'live.jpg'));
   }
   const port = nextPort++;
-  const proc = spawn(process.execPath, [path.join(ROOT, 'server', 'index.js')], {
+  const proc = spawn(process.execPath, [path.join(ROOT, 'src', 'server', 'index.js')], {
     cwd: ROOT,
     env: {
       PATH: process.env.PATH,
@@ -131,7 +131,7 @@ async function startServer(name, { env = {}, dirs = null, waitCamera = true } = 
       PRE_MESSAGE_SECONDS: '0',
       FOCUS_BEFORE_END: '0',
       // the app's modules, and the test module (modules/testedit: { testEdit: true } in a shot)
-      FEATURES_DIR: [path.join(ROOT, 'features'), path.join(__dirname, 'modules')].join(path.delimiter),
+      FEATURES_DIR: [path.join(ROOT, 'src', 'features'), path.join(__dirname, 'modules')].join(path.delimiter),
       PUID: process.env.PUID || '',
       PGID: process.env.PGID || '',
       ...(REAL ? {} : { GPHOTO_BIN: FAKE_GPHOTO, FAKE_CAMERA_DIR: camera.dir }),

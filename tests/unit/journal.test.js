@@ -10,7 +10,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const journal = require('../../server/journal');
+const journal = require('../../src/server/journal');
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'journal-'));
 test.after(() => fs.rmSync(tmp, { recursive: true, force: true }));

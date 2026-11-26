@@ -1,10 +1,9 @@
 node_modules
-photos
-config
+data
 .git
 .github
 .githooks
 scripts
 **/*.md
 tests
-features/*/tests
+src/features/*/tests

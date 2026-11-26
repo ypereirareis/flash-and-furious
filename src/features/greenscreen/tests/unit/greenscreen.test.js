@@ -12,7 +12,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'green-'));
 process.env.CONFIG_DIR = tmp;
 const key = require('../../key');
 const greenscreen = require('../../images');
-const { def, features, edit, settings } = require('../../../../tests/unit/modules');
+const { def, features, edit, settings } = require('../../../../../tests/unit/modules');
 test.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
 
 const CLOTH = [40, 175, 70];

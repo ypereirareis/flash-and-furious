@@ -10,8 +10,8 @@ const path = require('path');
 const state = fs.mkdtempSync(path.join(os.tmpdir(), 'camera-'));
 process.env.FAKE_CAMERA_DIR = state;
 process.env.GPHOTO_BIN = path.join(__dirname, '../fake-camera/gphoto2');
-const { Gphoto2Camera } = require('../../server/cameras/gphoto2');
-const canon = require('../../server/cameras/canon-eos-1000d');
+const { Gphoto2Camera } = require('../../src/server/cameras/gphoto2');
+const canon = require('../../src/server/cameras/canon-eos-1000d');
 
 const mode = (m) => fs.writeFileSync(path.join(state, 'mode'), m);
 test.beforeEach(() => mode('ok'));

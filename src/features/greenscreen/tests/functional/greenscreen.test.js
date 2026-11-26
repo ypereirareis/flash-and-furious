@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
-const { REAL, FIXTURES, photos: testPhotos, startServer, shoot, waitFullSize, media, colourAt, isGrey, WORK } = require('../../../../tests/functional/helpers');
+const { REAL, FIXTURES, photos: testPhotos, startServer, shoot, waitFullSize, media, colourAt, isGrey, WORK } = require('../../../../../tests/functional/helpers');
 
 /**
  * Green screen test photo: green cloth, a little darker at the bottom, with a skin-coloured
