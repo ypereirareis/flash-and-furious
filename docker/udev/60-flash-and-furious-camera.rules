@@ -1,0 +1,8 @@
+# Gives cameras (USB PTP devices: still image class 06/01/01) to the plugdev group, so the app,
+# which runs as PUID:PGID with the USB_GID group (46 = plugdev), can use them.
+# Only needed on a host without libgphoto2 (whose own udev rules already do this), e.g. a
+# minimal Raspberry Pi OS. Install:
+#   sudo cp docker/udev/60-flash-and-furious-camera.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload && sudo udevadm trigger
+# then unplug and plug the camera again.
+ACTION=="add|bind", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ENV{ID_USB_INTERFACES}=="*:060101:*", MODE="0664", GROUP="plugdev"

@@ -32,11 +32,12 @@ FROM alpine:${ALPINE_VERSION} AS runtime
 
 # libstdc++/libgcc: needed by node. gphoto2: camera control over USB (PTP), no firmware writes.
 # tzdata: local time (TZ) in file names and on frames. font-dejavu: text on frames.
-# util-linux-misc (mountpoint) and setpriv: photos folder checks in the entrypoint.
+# util-linux-misc (mountpoint) and setpriv: photos folder checks in the entrypoint, and running the
+# app as PUID:PGID. tini: PID 1, passes signals on to the app and reaps orphan processes.
 # Package versions are not pinned: exact versions disappear from the Alpine repositories with
 # every security update, which would break the build. ALPINE_VERSION fixes the Alpine release.
 # hadolint ignore=DL3018
-RUN apk add --no-cache libstdc++ libgcc gphoto2 tzdata font-dejavu util-linux-misc setpriv
+RUN apk add --no-cache libstdc++ libgcc gphoto2 tzdata font-dejavu util-linux-misc setpriv tini
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
 
 WORKDIR /app
@@ -53,5 +54,6 @@ ENV NODE_ENV=production \
     CONFIG_DIR=/app/config
 
 EXPOSE 3000
-ENTRYPOINT ["docker-entrypoint.sh"]
+# tini as PID 1; the entrypoint prepares the folders as root, then runs the app as PUID:PGID
+ENTRYPOINT ["/sbin/tini", "--", "docker-entrypoint.sh"]
 CMD ["node", "src/server/index.js"]

@@ -26,7 +26,7 @@ and no image is kept in its browser cache (`Cache-Control: no-store` on every re
 | `data/` | created while the booth is used, never committed: `photos/` (default photos folder), `config/` (settings, journal) |
 | `tests/` | tests of the core, fake camera, test module |
 | `scripts/` | tests, smoke test, translations check, dependency updates |
-| `docker/` | entrypoint of the container (`Dockerfile` and `docker-compose.yml` stay at the root) |
+| `docker/` | entrypoint of the container, udev rule for the camera (`Dockerfile` and `docker-compose.yml` stay at the root) |
 
 ## Photos folder
 
@@ -38,12 +38,13 @@ The photos folder on the host is set in a `.env` file next to `docker-compose.ym
 | `PHOTOS_CREATE` | `true` | Missing folder: `true` = created at start-up, `false` = `docker compose up` fails ("bind source path does not exist") |
 | `PHOTOS_EXTERNAL` | `false` | `true` = the folder must be on another disk than the project: if the external disk is not plugged in or not mounted, photos are blocked instead of silently filling the system disk |
 | `STORAGE_MIN_FREE_MB` | `200` | Photos are blocked (with an alert) when less free space than this is left on the disk |
-| `PUID` / `PGID` | `1000` | Owner of the folder and of the photos on the host |
+| `PUID` / `PGID` | `1000` | The app runs as this user: owner of the folder, of the photos and of the settings on the host |
 
-On every start, the container entrypoint (`docker/entrypoint.sh`) checks the folder. It is idempotent: it only changes what is not already right.
+On every start, the container entrypoint (`docker/entrypoint.sh`) checks the folder, as root, then starts the app as
+`PUID:PGID` (see [Running as a user, not root](#running-as-a-user-not-root)). It is idempotent: it only changes what is not already right.
 
-- A folder that Docker has just created (empty, owned by root) is handed over to `PUID:PGID`; the `.cache/` and `originals/` subfolders are created if missing.
-- An existing folder is never modified: if `PUID:PGID` cannot write to it, a warning gives the command to fix it on the host (`sudo chown …`).
+- A folder that Docker has just created (empty, owned by root) is handed over to `PUID:PGID`; the `.cache/` and `originals/` subfolders are created if missing, owned by `PUID:PGID`.
+- An existing folder is never modified: if `PUID:PGID` cannot write to it, photos are blocked and the message gives the command to fix it on the host (`sudo chown …`).
 - Blocking problems (folder not mounted from the host, external disk missing, read-only folder, disk almost full) are logged, shown on the tablet and in `/admin`, and photos are refused until they are fixed.
 - The server checks again before every photo with a real write test, so a disk unplugged or a folder deleted during an event is detected. If a photo could not be saved, the camera is not fired again for nothing: the storage problem is reported instead.
 
@@ -218,6 +219,21 @@ With `--keep`, the photo also stays on the memory card if the camera records to 
 - Optional: "Auto power off" set to "Disable", otherwise the camera goes to sleep and disappears from USB.
 - JPEG or RAW+JPEG quality. With RAW only, there is no preview in the gallery.
 
+## Running as a user, not root
+
+In the container, [tini](https://github.com/krallin/tini) is PID 1: it passes the stop signals on to the app and
+reaps orphan processes. The entrypoint prepares the folders as root, then starts the app as `PUID:PGID`, with no
+capabilities kept. `docker compose stop` (SIGTERM) stops it cleanly: live view closed, current camera command and
+photos being processed finished (12 s at most), journal written.
+
+To use the camera, the app's user also gets the group of its USB device on the host, `USB_GID` (46 = `plugdev` on
+Debian, Ubuntu and Raspberry Pi OS). The libgphoto2 package of the host gives cameras to that group. On a host without
+it (e.g. a minimal Raspberry Pi OS), install the rule in `docker/udev/` (see the comments in the file), then
+unplug and plug the camera again. To check: `ls -l /dev/bus/usb/*/*` with the camera plugged in shows a device of group
+`plugdev` with mode `crw-rw-r--`.
+
+Without `PUID`/`PGID` (or with `PUID=0`), the app runs as root.
+
 ## "The camera is already used by another program"
 
 The Ubuntu desktop (gvfs) automatically mounts the camera when it is plugged in, and locks it. To release it:
@@ -272,7 +288,8 @@ The admin page adapts by itself: help texts provided by the driver, sections hid
 | `FRAME_TITLE` | Flash & Furious | Frame text on first start (then editable in `/admin`) |
 | `HOST_IP` | (auto) | Address shown in `/admin` for the tablet |
 | `TZ` | Europe/Paris | Time zone used to name files |
-| `PUID` / `PGID` | 1000 | Owner of the files created in the photos folder |
+| `PUID` / `PGID` | 1000 | The app runs as this user, owner of the files it creates ([details](#running-as-a-user-not-root)) |
+| `USB_GID` | 46 | Group of the camera's USB device on the host, added to the app's user |
 | `PHOTOS_PATH`, `PHOTOS_CREATE`, `PHOTOS_EXTERNAL`, `STORAGE_MIN_FREE_MB` | see [Photos folder](#photos-folder) | Photos folder on the host |
 | `JOURNAL_MAX_ENTRIES`, `JOURNAL_MAX_BYTES`, `JOURNAL_MAX_PER_MINUTE` | 5000, 2097152, 120 | Limits of the [event journal](#event-journal) |
 | `BACKGROUNDS_DIR` | `src/features/greenscreen/backgrounds/` (mounted from the project) | [Green screen](src/features/greenscreen/README.md) backgrounds |
