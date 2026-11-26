@@ -12,9 +12,21 @@ docker compose up -d --build
 On the tablet (same Wi-Fi network as the host): `http://<host-ip>:3000`.
 Use ⛶ to go full screen, or "Add to Home Screen".
 
-Photos are copied to `./photos/` by default (see [Photos folder](#photos-folder) to use another folder or an external disk).
+Photos are copied to `./data/photos/` by default (see [Photos folder](#photos-folder) to use another folder or an external disk).
 They can **only be retrieved on the host**: the tablet has no download button,
 and no image is kept in its browser cache (`Cache-Control: no-store` on every response).
+
+## Project layout
+
+| Folder | What |
+|---|---|
+| `src/server/` | the Node.js server (camera, photos, settings, journal, the loader of the modules) |
+| `src/public/` | the pages: tablet, `/admin`, slideshow, their texts (`locales/`) |
+| `src/features/` | the [feature modules](#feature-modules), each with its code, screen files, texts, images and tests |
+| `data/` | created while the booth is used, never committed: `photos/` (default photos folder), `config/` (settings, journal) |
+| `tests/` | tests of the core, fake camera, test module |
+| `scripts/` | tests, smoke test, translations check, dependency updates |
+| `docker/` | entrypoint of the container (`Dockerfile` and `docker-compose.yml` stay at the root) |
 
 ## Photos folder
 
@@ -22,7 +34,7 @@ The photos folder on the host is set in a `.env` file next to `docker-compose.ym
 
 | Variable | Default | Role |
 |---|---|---|
-| `PHOTOS_PATH` | `./photos` | Folder on the host: relative to the project or absolute, on the system disk or on an external disk |
+| `PHOTOS_PATH` | `./data/photos` | Folder on the host: relative to the project or absolute, on the system disk or on an external disk |
 | `PHOTOS_CREATE` | `true` | Missing folder: `true` = created at start-up, `false` = `docker compose up` fails ("bind source path does not exist") |
 | `PHOTOS_EXTERNAL` | `false` | `true` = the folder must be on another disk than the project: if the external disk is not plugged in or not mounted, photos are blocked instead of silently filling the system disk |
 | `STORAGE_MIN_FREE_MB` | `200` | Photos are blocked (with an alert) when less free space than this is left on the disk |
@@ -59,7 +71,7 @@ PHOTOS_EXTERNAL=true
 | `http://<host-ip>:3000/admin` | the organiser | language, live view, mirror, theme, green screen, frame, AF/MF focus, event journal |
 | `http://<host-ip>:3000/slideshow` | a screen / TV | photos in a loop, 3 s each, crossfade and slow zoom; new photos are shown first (4K version, 3840 px) |
 
-`/admin` settings are saved in `config/settings.json` (kept across restarts) and applied immediately
+`/admin` settings are saved in `data/config/settings.json` (kept across restarts) and applied immediately
 on every tablet. The `/admin` page is not password-protected: only use the app on a trusted local network,
 and don't give its address to guests.
 
@@ -67,7 +79,7 @@ and don't give its address to guests.
 
 The interface (tablet, slideshow, admin) is translated in English and French. The language is picked in `/admin`
 (Display card); the default comes from `DEFAULT_LANG` (`fr` in `docker-compose.yml`).
-Texts live in `public/locales/<lang>.json`, shared by the server and the browser. To add a language, copy `en.json`
+Texts live in `src/public/locales/<lang>.json`, shared by the server and the browser. To add a language, copy `en.json`
 to `<code>.json` and translate it: it shows up in `/admin` automatically after a rebuild.
 
 ## Event journal
@@ -78,7 +90,7 @@ used by another program, focus mode, storage blocked or available again, setting
 Older entries load as the list is scrolled down; new ones appear on top while it is open. Messages follow the
 language chosen in `/admin`.
 
-It is saved in `config/journal.jsonl`, so it survives a restart or a power cut. The technical details for
+It is saved in `data/config/journal.jsonl`, so it survives a restart or a power cut. The technical details for
 troubleshooting stay in the Docker logs (`docker logs flash-and-furious`).
 
 The journal can neither slow the booth down nor fill the disk:
@@ -121,9 +133,9 @@ In `/admin`, "Colour theme" card: 13 themes (including Halloween, Christmas, Wed
 To try a theme on a single screen without saving it: `http://<host>:3000/?theme=halloween`.
 The Gallery and Back buttons take the theme's bright colour.
 A theme is only colours. Drawings matching it (pumpkins, fir trees, roses and rings, cake with candles… for Halloween,
-Christmas, Wedding and Birthday) come from the [`decorations`](features/decorations/README.md) module: on the tablet,
+Christmas, Wedding and Birthday) come from the [`decorations`](src/features/decorations/README.md) module: on the tablet,
 on the photos, or both, with two switches in the Theme card. Decorations are optional for a theme.
-To add or change a theme: `server/themes.js` (one entry per theme) and its name in `public/locales/*.json`, then `docker compose up -d --build`.
+To add or change a theme: `src/server/themes.js` (one entry per theme) and its name in `src/public/locales/*.json`, then `docker compose up -d --build`.
 
 ## Photo editing
 
@@ -141,26 +153,26 @@ or a power cut, its processing resumes on start-up. A clean stop (`docker compos
 
 ## Feature modules
 
-Everything that changes the photos, and its settings in `/admin`, is a module of the `features/` folder,
+Everything that changes the photos, and its settings in `/admin`, is a module of the `src/features/` folder,
 documented in its own `README.md`:
 
 | Module | What it does | In `/admin` |
 |---|---|---|
-| [`greenscreen`](features/greenscreen/README.md) | replaces a green cloth with a background | Green screen card: on/off, calibration, background, tolerance |
-| [`bw`](features/bw/README.md) | black & white button on the tablet (the guests' choice) | — |
-| [`frames`](features/frames/README.md) | a frame on the photos and over live view | Frames card: frame, text |
-| [`decorations`](features/decorations/README.md) | the theme's drawings on the tablet and/or on the photos | Colour theme card: on the tablet, on the photos |
+| [`greenscreen`](src/features/greenscreen/README.md) | replaces a green cloth with a background | Green screen card: on/off, calibration, background, tolerance |
+| [`bw`](src/features/bw/README.md) | black & white button on the tablet (the guests' choice) | — |
+| [`frames`](src/features/frames/README.md) | a frame on the photos and over live view | Frames card: frame, text |
+| [`decorations`](src/features/decorations/README.md) | the theme's drawings on the tablet and/or on the photos | Colour theme card: on the tablet, on the photos |
 
 **Choosing the modules**: `FEATURES` in `.env` (then `docker compose up -d`): `all` (default), `none`, or a
 list such as `FEATURES=bw,frames`. The active modules keep all their settings in `/admin`, to change during the
 event (frame, green screen on or off…). An inactive module is not loaded at all: no card, no button, no
 routes, never applied to the photos; its settings stay saved for when it is switched back on.
 
-**Removing a module from the code**: delete its folder, images included (`features/frames/frames/`,
-`features/greenscreen/backgrounds/`). Nothing else refers to it.
+**Removing a module from the code**: delete its folder, images included (`src/features/frames/frames/`,
+`src/features/greenscreen/backgrounds/`). Nothing else refers to it.
 
 **How the edits stack up**: the photo is decoded once, goes through the steps of the modules of the shot,
-then is encoded once (`server/photo.js`, which knows none of them). There are three stages, in this order:
+then is encoded once (`src/server/photo.js`, which knows none of them). There are three stages, in this order:
 1. `pixels`: changes the RGB pixels (green screen, in colour);
 2. `image`: image operations (black & white: the photo and its background turn grey);
 3. `layers`: images laid over the photo in their own colours (frame, then decorations).
@@ -168,13 +180,13 @@ then is encoded once (`server/photo.js`, which knows none of them). There are th
 The edits of a shot are decided when it is taken (with the settings of that moment), and saved with the photo
 until its full-size version is done.
 
-**Writing a module**: a folder `features/<id>/` with
+**Writing a module**: a folder `src/features/<id>/` with
 - `README.md`: what it does, its settings, files and routes;
-- `index.js`: `module.exports = (core) => ({ ... })`, the hooks are described in `server/features.js`
+- `index.js`: `module.exports = (core) => ({ ... })`, the hooks are described in `src/server/features.js`
   (settings, routes, the edit of a shot and its stage, tablet message, journal entries, screen files);
 - `locales/en.json`, `locales/fr.json`: its texts, in a `"<id>"` block;
 - `public/`: its files for the tablet and `/admin`, served at `/features/<id>/` (they register in
-  `BOOTH_PARTS` or `ADMIN_PARTS`, see `public/features.js`);
+  `BOOTH_PARTS` or `ADMIN_PARTS`, see `src/public/features.js`);
 - `tests/unit/`, `tests/functional/`: found by `./scripts/test.sh`.
 
 ## Automatic or manual focus
@@ -223,21 +235,21 @@ systemctl --user mask --now gvfs-gphoto2-volume-monitor.service
 
 ## Using another camera
 
-All camera-specific code lives in `server/cameras/`. The rest of the app only uses the interface described
-at the top of `server/cameras/index.js`.
+All camera-specific code lives in `src/server/cameras/`. The rest of the app only uses the interface described
+at the top of `src/server/cameras/index.js`.
 
 | File | Role |
 |---|---|
-| `server/cameras/index.js` | picks the driver (`CAMERA_DRIVER`) and documents the interface |
-| `server/cameras/gphoto2.js` | common gphoto2 base: detection, capture, live view, autofocus, errors |
-| `server/cameras/canon-eos-1000d.js` | 1000D specifics: AF/MF reading, retry in One Shot |
-| `server/cameras/gphoto2-generic.js` | fallback driver for any gphoto2-compatible camera |
+| `src/server/cameras/index.js` | picks the driver (`CAMERA_DRIVER`) and documents the interface |
+| `src/server/cameras/gphoto2.js` | common gphoto2 base: detection, capture, live view, autofocus, errors |
+| `src/server/cameras/canon-eos-1000d.js` | 1000D specifics: AF/MF reading, retry in One Shot |
+| `src/server/cameras/gphoto2-generic.js` | fallback driver for any gphoto2-compatible camera |
 
 For a new camera:
 1. First try `CAMERA_DRIVER=gphoto2-generic` (capture + live view, without reading the focus mode).
 2. If needed, copy `canon-eos-1000d.js` to `my-camera.js`, adapt it (focus mode reading,
    `liveView` / `remoteAutofocus` / `focusMode` capabilities), then add it to the `DRIVERS` list in `index.js`.
-   Help texts specific to the camera go under `cameras.<driver id>` in `public/locales/*.json`.
+   Help texts specific to the camera go under `cameras.<driver id>` in `src/public/locales/*.json`.
 3. Set `CAMERA_DRIVER=my-camera` in `docker-compose.yml` and restart with `docker compose up -d --build`.
 
 The admin page adapts by itself: help texts provided by the driver, sections hidden when the camera does not support them.
@@ -255,7 +267,7 @@ The admin page adapts by itself: help texts provided by the driver, sections hid
 | `FOCUS_BEFORE_END` | 2 | When focusing starts before the end of the countdown (s) |
 | `LIVE_QUALITY` | 70 | JPEG quality of the live stream (lower = lighter) |
 | `LIVE_MAX_SECONDS` | 10 | Maximum live view duration (s) |
-| `CAMERA_DRIVER` | canon-eos-1000d | Camera driver (`server/cameras/`) |
+| `CAMERA_DRIVER` | canon-eos-1000d | Camera driver (`src/server/cameras/`) |
 | `FEATURES` | all | active [feature modules](#feature-modules): `all`, `none`, or e.g. `bw,frames,decorations,greenscreen` |
 | `FRAME_TITLE` | Flash & Furious | Frame text on first start (then editable in `/admin`) |
 | `HOST_IP` | (auto) | Address shown in `/admin` for the tablet |
@@ -263,7 +275,7 @@ The admin page adapts by itself: help texts provided by the driver, sections hid
 | `PUID` / `PGID` | 1000 | Owner of the files created in the photos folder |
 | `PHOTOS_PATH`, `PHOTOS_CREATE`, `PHOTOS_EXTERNAL`, `STORAGE_MIN_FREE_MB` | see [Photos folder](#photos-folder) | Photos folder on the host |
 | `JOURNAL_MAX_ENTRIES`, `JOURNAL_MAX_BYTES`, `JOURNAL_MAX_PER_MINUTE` | 5000, 2097152, 120 | Limits of the [event journal](#event-journal) |
-| `BACKGROUNDS_DIR` | `features/greenscreen/backgrounds/` (mounted from the project) | [Green screen](features/greenscreen/README.md) backgrounds |
+| `BACKGROUNDS_DIR` | `src/features/greenscreen/backgrounds/` (mounted from the project) | [Green screen](src/features/greenscreen/README.md) backgrounds |
 
 ## The camera stops responding ("PTP Timeout")
 
@@ -295,12 +307,12 @@ Everything runs in Docker, in the app image (no Node needed on the host):
 ./scripts/test.sh functional --only queue --keep   # one test file; keep photos, server logs and timings
 ```
 
-- **Unit tests** (`tests/unit/` and `features/*/tests/unit/`, Node's built-in `node:test`): photo processing
+- **Unit tests** (`tests/unit/` and `src/features/*/tests/unit/`, Node's built-in `node:test`): photo processing
   (orientation, stages), black & white, theme decorations, frames (text fitting, transparent parts, colour, black & white, screen
   versions, settings), settings, storage checks, translations, themes, gphoto2 drivers,
-  photo names and addresses (`server/photos.js`), event journal (limits on disk, in memory and per minute),
+  photo names and addresses (`src/server/photos.js`), event journal (limits on disk, in memory and per minute),
   green screen (thresholds, calibration, soft edges, green reflections, backgrounds).
-- **Functional tests** (`tests/functional/` and `features/*/tests/functional/`): each test file starts the real server with its own photos and
+- **Functional tests** (`tests/functional/` and `src/features/*/tests/functional/`): each test file starts the real server with its own photos and
   config folders, and drives it like the tablet does (HTTP API and events). Covered: camera detection and
   problems (unplugged, used by another program, asleep), photos as taken and in black & white, decorations
   without frame, upright photo, RAW+JPEG, photo refused while another is in progress, live view,

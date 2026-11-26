@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const themes = require('../../server/themes');
+const themes = require('../../src/server/themes');
 
 test('themes: unique ids, default valid', () => {
   const ids = themes.list().map((t) => t.id);

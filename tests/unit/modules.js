@@ -1,17 +1,17 @@
 'use strict';
 
 /**
- * The feature modules loaded as the server does (server/features.js), with the parts of the
+ * The feature modules loaded as the server does (src/server/features.js), with the parts of the
  * app they use, for the unit tests of the modules. Require it after setting CONFIG_DIR (and
  * FEATURES if needed).
  */
 const express = require('express');
-const settings = require('../../server/settings');
-const i18n = require('../../server/i18n');
-const journal = require('../../server/journal');
-const themes = require('../../server/themes');
-const photo = require('../../server/photo');
-const features = require('../../server/features');
+const settings = require('../../src/server/settings');
+const i18n = require('../../src/server/i18n');
+const journal = require('../../src/server/journal');
+const themes = require('../../src/server/themes');
+const photo = require('../../src/server/photo');
+const features = require('../../src/server/features');
 
 const lang = () => settings.get().lang;
 const tr = (key, vars) => i18n.t(lang(), key, vars);

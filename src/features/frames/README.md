@@ -1,7 +1,7 @@
 # Frames module
 
 A frame laid over every photo, with the event title and the date, and shown over live view on the tablet.
-One of the [feature modules](../../README.md#feature-modules): active when `FEATURES` includes `frames`
+One of the [feature modules](../../../README.md#feature-modules): active when `FEATURES` includes `frames`
 (or is `all`).
 
 The applied frame is chosen in `/admin`, among the frames of the `frames/` folder (Polaroid, Party, Cinema, Elegant included),

@@ -4,7 +4,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('path');
-const { startServer, shoot, waitFullSize, colourAt, isGrey } = require('../../../../tests/functional/helpers');
+const { startServer, shoot, waitFullSize, colourAt, isGrey } = require('../../../../../tests/functional/helpers');
 
 let server;
 test.before(async () => { server = await startServer('bw'); });

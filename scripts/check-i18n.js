@@ -2,7 +2,7 @@
 'use strict';
 
 /**
- * Checks the UI translations (public/locales/*.json):
+ * Checks the UI translations (src/public/locales/*.json):
  *  - every language has exactly the same keys as English, with the same {placeholders};
  *  - every key used in the code exists;
  *  - driver-specific camera texts ("cameras.<id>.<name>") override an existing generic text.
@@ -14,15 +14,15 @@ const path = require('path');
 
 const root = path.join(__dirname, '..');
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
-const localesDir = path.join(root, 'public', 'locales');
+const localesDir = path.join(root, 'src', 'public', 'locales');
 const langs = fs.readdirSync(localesDir).filter((f) => f.endsWith('.json')).map((f) => path.basename(f, '.json'));
-// feature modules (features/<id>/): their texts are merged into the app's, as the server does
-const modules = fs.readdirSync(path.join(root, 'features'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
+// feature modules (src/features/<id>/): their texts are merged into the app's, as the server does
+const modules = fs.readdirSync(path.join(root, 'src', 'features'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
 const moduleTexts = (l) => Object.assign({}, ...modules.map((m) => {
-  const f = path.join(root, 'features', m, 'locales', `${l}.json`);
+  const f = path.join(root, 'src', 'features', m, 'locales', `${l}.json`);
   return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : {};
 }));
-const dicts = Object.fromEntries(langs.map((l) => [l, { ...JSON.parse(read(`public/locales/${l}.json`)), ...moduleTexts(l) }]));
+const dicts = Object.fromEntries(langs.map((l) => [l, { ...JSON.parse(read(`src/public/locales/${l}.json`)), ...moduleTexts(l) }]));
 const errors = [];
 const listJs = (dir) => (fs.existsSync(path.join(root, dir)) ? fs.readdirSync(path.join(root, dir)).filter((f) => f.endsWith('.js')).map((f) => path.join(dir, f)) : []);
 
@@ -51,11 +51,11 @@ for (const lang of langs.filter((l) => l !== 'en')) {
 
 // 2. Keys used in the code
 const files = [
-  ...['public/app.js', 'public/admin.js', 'public/index.html', 'public/admin.html', 'public/slideshow.html'],
-  'public/features.js',
-  ...['server/index.js', 'server/journal.js'],
+  ...['src/public/app.js', 'src/public/admin.js', 'src/public/index.html', 'src/public/admin.html', 'src/public/slideshow.html'],
+  'src/public/features.js',
+  ...['src/server/index.js', 'src/server/journal.js'],
   // feature modules: their server side (index.js) and their screen files
-  ...modules.flatMap((m) => [path.join('features', m, 'index.js'), ...listJs(path.join('features', m, 'public'))]),
+  ...modules.flatMap((m) => [path.join('src', 'features', m, 'index.js'), ...listJs(path.join('src', 'features', m, 'public'))]),
 ].filter((f) => fs.existsSync(path.join(root, f)));
 const used = new Set();
 const add = (re, text, map = (m) => m[1]) => { for (const m of text.matchAll(re)) used.add(map(m)); };
@@ -66,11 +66,11 @@ for (const f of files) {
   for (const m of s.matchAll(/data-i18n-attr="([^"]+)"/g)) m[1].split(';').forEach((p) => used.add(p.split(':')[1].trim()));
 }
 // camera texts: names referenced by the server, the drivers and live view
-const index = read('server/index.js');
+const index = read('src/server/index.js');
 add(/camera: '(\w+)'/g, index, (m) => `camera.${m[1]}`);
 add(/'(\w+)'/g, (index.match(/CAMERA_TEXTS = \[([^\]]*)\]/) || ['', ''])[1], (m) => `camera.${m[1]}`);
-add(/return '(\w+)';/g, read('server/cameras/gphoto2.js'), (m) => `camera.${m[1]}`);
-add(/'(live[A-Z]\w+)'/g, read('server/live.js'), (m) => `camera.${m[1]}`);
+add(/return '(\w+)';/g, read('src/server/cameras/gphoto2.js'), (m) => `camera.${m[1]}`);
+add(/'(live[A-Z]\w+)'/g, read('src/server/live.js'), (m) => `camera.${m[1]}`);
 for (const k of used) if (/\.(js|css|json|svg|png|jpe?g)$/.test(k)) used.delete(k); // file names, not texts
 for (const k of used) if (!(k in en)) errors.push(`key used in the code but missing from en.json: "${k}"`);
 

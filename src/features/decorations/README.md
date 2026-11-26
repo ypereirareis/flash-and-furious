@@ -4,7 +4,7 @@ Drawings matching the colour theme (pumpkins, fir trees, roses and rings, cake w
 - **on the tablet**: on the corners of the preview and as a pattern in the right-hand column;
 - **on the photos**: on their corners, with or without a frame, in colour even on black & white photos.
 
-One of the [feature modules](../../README.md#feature-modules): active when `FEATURES` includes `decorations`
+One of the [feature modules](../../../README.md#feature-modules): active when `FEATURES` includes `decorations`
 (or is `all`). Switched off, there are no decorations anywhere; the themes keep their colours.
 
 ## In /admin

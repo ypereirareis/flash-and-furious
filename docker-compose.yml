@@ -14,18 +14,18 @@ services:
       # Photos folder on the host: a local folder or a folder on an external disk.
       # Set PHOTOS_PATH (and PHOTOS_CREATE / PHOTOS_EXTERNAL) in .env, see .env.example.
       - type: bind
-        source: ${PHOTOS_PATH:-./photos}
+        source: ${PHOTOS_PATH:-./data/photos}
         target: /app/photos
         bind:
           # missing folder: created (then handed over to PUID:PGID by the entrypoint),
           # or "false" to refuse to start instead
           create_host_path: ${PHOTOS_CREATE:-true}
       # Frames (module frames): transparent PNG or SVG, editable without rebuilding the image
-      - ./features/frames/frames:/app/features/frames/frames:ro
+      - ./src/features/frames/frames:/app/src/features/frames/frames:ro
       # Backgrounds (module greenscreen): JPEG, PNG or SVG, editable without rebuilding the image
-      - ./features/greenscreen/backgrounds:/app/features/greenscreen/backgrounds:ro
+      - ./src/features/greenscreen/backgrounds:/app/src/features/greenscreen/backgrounds:ro
       # Settings saved from /admin
-      - ./config:/app/config
+      - ./data/config:/app/config
       # USB bus mounted as a volume (not as a "device") to support
       # plugging / unplugging the camera while running
       - /dev/bus/usb:/dev/bus/usb
@@ -37,12 +37,12 @@ services:
       - FRAME_TITLE=${FRAME_TITLE:-Flash & Furious}
       # Default UI language (en, fr); can then be changed in /admin
       - DEFAULT_LANG=${DEFAULT_LANG:-fr}
-      # Camera driver (server/cameras/ folder)
+      # Camera driver (src/server/cameras/ folder)
       - CAMERA_DRIVER=${CAMERA_DRIVER:-canon-eos-1000d}
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
       # Photos folder: path on the host (for messages), external disk expected or not
-      - PHOTOS_HOST_PATH=${PHOTOS_PATH:-./photos}
+      - PHOTOS_HOST_PATH=${PHOTOS_PATH:-./data/photos}
       - PHOTOS_EXTERNAL=${PHOTOS_EXTERNAL:-false}
       - STORAGE_MIN_FREE_MB=${STORAGE_MIN_FREE_MB:-200}
       - DEFAULT_DELAY=${DEFAULT_DELAY:-3}
@@ -53,7 +53,7 @@ services:
       - LOOK_MESSAGE_SECONDS=${LOOK_MESSAGE_SECONDS:-2}
       - PRE_MESSAGE_SECONDS=${PRE_MESSAGE_SECONDS:-2}
       - FOCUS_BEFORE_END=${FOCUS_BEFORE_END:-2}
-      # Feature modules (features/ folder): all, or a list such as bw,frames,decorations,greenscreen
+      # Feature modules (src/features/ folder): all, or a list such as bw,frames,decorations,greenscreen
       - FEATURES=${FEATURES:-all}
       - LIVE_QUALITY=${LIVE_QUALITY:-70}
       - LIVE_MAX_SECONDS=${LIVE_MAX_SECONDS:-10}

@@ -11,7 +11,7 @@ const sharp = require('sharp');
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'deco-'));
 process.env.CONFIG_DIR = tmp;
-const { def, edit, settings, core } = require('../../../../tests/unit/modules');
+const { def, edit, settings, core } = require('../../../../../tests/unit/modules');
 const { files, DECO_DIR } = require('../..');
 test.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
 settings.load();

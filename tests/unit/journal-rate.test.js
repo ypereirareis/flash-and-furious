@@ -5,7 +5,7 @@ process.env.JOURNAL_MAX_PER_MINUTE = '5';
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const journal = require('../../server/journal');
+const journal = require('../../src/server/journal');
 
 test('beyond the limit, entries are counted and reported once', (t) => {
   t.mock.timers.enable({ apis: ['Date'], now: 1_000_000 });

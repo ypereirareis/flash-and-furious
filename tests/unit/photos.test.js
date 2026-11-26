@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { safeName, timestamp, toDto, lanAddresses, IMAGE_RE } = require('../../server/photos');
+const { safeName, timestamp, toDto, lanAddresses, IMAGE_RE } = require('../../src/server/photos');
 
 test('safeName keeps photo file names only', () => {
   assert.equal(safeName('flash-and-furious_20261125_074116_022.jpg'), 'flash-and-furious_20261125_074116_022.jpg');

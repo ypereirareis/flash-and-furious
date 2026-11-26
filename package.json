@@ -4,9 +4,9 @@
   "private": true,
   "description": "Flash & Furious: self-hosted photobooth driving a USB DSLR with gphoto2, with a tablet web app",
   "license": "MIT",
-  "main": "server/index.js",
+  "main": "src/server/index.js",
   "scripts": {
-    "start": "node server/index.js",
+    "start": "node src/server/index.js",
     "test": "./scripts/test.sh",
     "test:unit": "node --test 'tests/unit/**/*.test.js'",
     "test:functional": "node --test --test-concurrency=1 tests/functional/*.test.js"

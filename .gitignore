@@ -1,13 +1,12 @@
 # Dependencies
 node_modules/
 
-# Photos taken (never on GitHub): only the empty folder is kept
-photos/*
-!photos/.gitkeep
-
-# Local settings made in /admin
-config/*
-!config/.gitkeep
+# Runtime data (never on GitHub): photos taken and settings made in /admin.
+# Only the empty folders are kept.
+data/photos/*
+!data/photos/.gitkeep
+data/config/*
+!data/config/.gitkeep
 
 # Misc
 .env

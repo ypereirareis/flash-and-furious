@@ -42,10 +42,8 @@ COPY --from=node /usr/local/bin/node /usr/local/bin/node
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json ./
-COPY server ./server
-COPY public ./public
-# feature modules (FEATURES): delete a folder of features/ to remove a module
-COPY features ./features
+# application code (feature modules in src/features/: delete a folder to remove a module)
+COPY src ./src
 # Checks and prepares the photos folder on every start (idempotent), then runs the CMD
 COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
@@ -56,4 +54,4 @@ ENV NODE_ENV=production \
 
 EXPOSE 3000
 ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["node", "server/index.js"]
+CMD ["node", "src/server/index.js"]

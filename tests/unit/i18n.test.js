@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const i18n = require('../../server/i18n');
+const i18n = require('../../src/server/i18n');
 
 test('languages: English and French, English as the fallback', () => {
   assert.deepEqual(i18n.LANGS, ['en', 'fr']);

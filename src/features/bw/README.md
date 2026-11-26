@@ -2,7 +2,7 @@
 
 A "Black & white" button on the tablet: the guests choose black & white photos. The choice is remembered on
 the tablet, and live view is shown in black & white too.
-One of the [feature modules](../../README.md#feature-modules): active when `FEATURES` includes `bw` (or is `all`).
+One of the [feature modules](../../../README.md#feature-modules): active when `FEATURES` includes `bw` (or is `all`).
 
 The photo turns grey after the green screen (its background turns grey too) and before the layers: the frame
 and the theme decorations keep their colours. No setting in `/admin`.
