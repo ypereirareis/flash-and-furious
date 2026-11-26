@@ -343,7 +343,8 @@ Everything runs in Docker, in the app image (no Node needed on the host):
 - **`--real`**: the tests that need the fake camera (failure modes, special photos) are skipped. The
   `flash-and-furious` container is stopped during the tests (only one program can use the camera), then
   started again; the desktop automount is released if needed. Your photos and settings are not touched:
-  the tests use temporary folders.
+  the tests use temporary folders. Like the app, the tests run as you, with the group of the camera's USB device
+  (`USB_GID`, 46 by default): a camera problem that only shows when not running as root is caught.
 
 ## Contributing
 
