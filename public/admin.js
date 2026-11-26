@@ -9,6 +9,8 @@ let focusWanted = null;
 let busy = false;
 // Capabilities and texts provided by the camera driver (server/cameras/)
 let cam = { capabilities: { liveView: true, remoteAutofocus: true, focusMode: false }, texts: {} };
+// Cards of optional features, in their own files (e.g. admin-green.js): { load(), render(settings) }
+const parts = window.ADMIN_PARTS || [];
 
 async function loadCameraInfo() {
   try { cam = await fetch('/api/camera').then((r) => r.json()); } catch (_) { /* defaults */ }
@@ -62,6 +64,7 @@ function applySettings(s) {
   renderFrames();
   renderThemes();
   renderLanguages();
+  parts.forEach((p) => p.render(s));
 }
 async function loadSettings() {
   applySettings(await fetch('/api/settings').then((r) => r.json()));
@@ -361,7 +364,7 @@ function toast(msg, kind) {
   const initial = await loadSettingsLang(); // language first, so every text is translated
   refreshStatus();
   loadNetwork();
-  await Promise.all([loadCameraInfo(), loadFrames(), loadThemes(), loadLanguages()]);
+  await Promise.all([loadCameraInfo(), loadFrames(), loadThemes(), loadLanguages(), ...parts.map((p) => p.load())]);
   if (initial) applySettings(initial);
   else loadSettings().catch(() => {});
   connectEvents();

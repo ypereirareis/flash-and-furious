@@ -202,5 +202,52 @@
     "settingMirrorOff": "Mirror effect: off",
     "settingLang": "Language: {value}",
     "skipped": "{count} journal entries skipped (too many in a minute)"
+  },
+  "greenscreen": {
+    "noPhoto": "The camera did not take the calibration photo. Check the focus (aim at a person in front of the cloth, or switch to manual focus) and try again.",
+    "notGreen": "No green cloth found: only {coverage}% of the photo is green. The cloth must fill a good part of the picture and be well lit.",
+    "failed": "The calibration failed. Try again.",
+    "booth": {
+      "applyingBackground": "Adding the background…"
+    },
+    "admin": {
+      "title": "Green screen",
+      "hint": "Guests pose in front of a green cloth: the green is replaced with the chosen background. Light the cloth evenly, keep people 1 to 2 m in front of it, and avoid green clothes.",
+      "toggle": "Replace the green cloth",
+      "toggleHint": "Applied to every photo, with or without a frame.",
+      "calibrate": "Calibrate",
+      "calibrating": "Taking the calibration photo…",
+      "calibrateHint": "Takes a photo (not added to the gallery) to measure the exact green of your cloth under your lights. Someone may stand in front of it. Calibrate again if the lights change.",
+      "calibrated": "Calibrated on {date}.",
+      "notCalibrated": "Not calibrated yet: default settings for a typical green cloth.",
+      "tolerance": "Tolerance",
+      "toleranceHint": "Raise it if green remains around people; lower it if parts of people disappear.",
+      "previewAlt": "Calibration photo with the background",
+      "backgrounds": "Background",
+      "backgroundsHint": "Add your own backgrounds (JPEG, PNG or SVG, 3:2 ratio) to the project's <code>backgrounds/</code> folder.",
+      "noBackground": "No background in the backgrounds/ folder."
+    },
+    "settings": {
+      "unknownBackground": "Unknown background.",
+      "badTolerance": "The tolerance must be between 0 and 100."
+    },
+    "journal": {
+      "photo": "Photo taken on the “{background}” background",
+      "photoBw": "Photo taken in black & white on the “{background}” background",
+      "photoFrame": "Photo taken on the “{background}” background with the “{frame}” frame",
+      "photoFrameBw": "Photo taken in black & white on the “{background}” background with the “{frame}” frame",
+      "settingOn": "Green screen: on",
+      "settingOff": "Green screen: off",
+      "settingBackground": "Green screen background: {value}",
+      "settingTolerance": "Green screen tolerance: {value}",
+      "calibrated": "Green screen calibrated ({coverage}% of the photo is green cloth)",
+      "calibrationFailed": "Green screen calibration failed: {reason}"
+    },
+    "backgrounds": {
+      "01-beach": "Beach",
+      "02-space": "Space",
+      "03-party-lights": "Party lights",
+      "04-city-night": "City at night"
+    }
   }
 }

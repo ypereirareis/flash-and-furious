@@ -11,6 +11,7 @@ const QRCode = require('qrcode');
 const camera = require('./cameras'); // camera driver (CAMERA_DRIVER)
 const live = require('./live');
 const frames = require('./frames');
+const greenscreen = require('./greenscreen'); // optional feature (GREEN_SCREEN=off), see its index.js
 const settings = require('./settings');
 const themes = require('./themes');
 const i18n = require('./i18n');
@@ -238,7 +239,48 @@ function setPhase(phase, extra = {}) {
 
 const fail = (message, reason) => Object.assign(new Error(reason), { userMessage: message });
 
-async function runShoot(delay, useLive, frame, { bw = false } = {}) {
+/** Why no photo can be taken right now, as { status, error } (translated), or null. */
+function cameraUnavailable() {
+  if (state.busy) return { status: 409, error: tr('shoot.busy') };
+  const storageProblem = storageError({ probe: true }); // real write test before every photo (disk unplugged?)
+  if (storageProblem) return { status: 503, error: translate(storageProblem) };
+  if (!state.camera || state.cameraError) return { status: 503, error: translate(state.cameraError) || tr('status.noCamera') };
+  return null;
+}
+
+/**
+ * Photo outside the gallery (e.g. green screen calibration), taken with the camera reserved
+ * into a temporary folder: fn(jpegFile, or null if none came) uses it, then it is deleted.
+ * @returns what fn returns
+ */
+async function captureAside(name, fn) {
+  state.busy = true;
+  const dir = path.join(CACHE_DIR, `${name}-${Date.now()}`);
+  try {
+    await fsp.mkdir(dir, { recursive: true });
+    await refreshFocusMode();
+    const manual = state.focusMode === 'manual';
+    await live.stop();
+    if (!manual) await camera.autofocus();
+    const jpegIn = async () => {
+      const f = (await fsp.readdir(dir)).find((x) => IMAGE_RE.test(x));
+      return f ? path.join(dir, f) : null;
+    };
+    await camera.capture(dir, name);
+    let photo = await jpegIn();
+    if (!photo && camera.shouldRetryWithoutFile({ manual })) {
+      await camera.autofocus();
+      await camera.capture(dir, name);
+      photo = await jpegIn();
+    }
+    return await fn(photo);
+  } finally {
+    state.busy = false;
+    fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
+async function runShoot(delay, useLive, frame, { bw = false, green = null } = {}) {
   state.busy = true;
   const baseName = `flash-and-furious_${timestamp()}`;
   let focusJob = null;
@@ -323,7 +365,7 @@ async function runShoot(delay, useLive, frame, { bw = false } = {}) {
     console.log(`[shoot] ${files.join(', ') || 'no file'} in ${Date.now() - before} ms`);
 
     if (!jpeg) throw fail({ key: files.length ? 'shoot.noJpeg' : 'shoot.noFiles' }, 'no jpeg');
-    if (frame || bw) await processPhoto(frame, files, jpeg, { bw });
+    if (frame || bw || green) await processPhoto(frame, files, jpeg, { bw, green });
     const job = processing.get(jpeg);
     const mtime = job ? job.mtime : (await fsp.stat(path.join(PHOTOS_DIR, jpeg))).mtimeMs;
     // Pre-generate the screen versions: the tablet one is awaited, the 4K one (TV)
@@ -332,8 +374,9 @@ async function runShoot(delay, useLive, frame, { bw = false } = {}) {
     resized(jpeg, 'tv').catch(() => {});
     const photo = toDto({ name: jpeg, mtime });
     broadcast({ type: 'photo', photo });
-    const taken = frame ? (bw ? 'journal.photoFrameBw' : 'journal.photoFrame') : bw ? 'journal.photoBw' : 'journal.photo';
-    journal.add('success', 'photo', taken, frame ? { frame: frame.label } : {}, jpeg);
+    const taken = `${green ? 'greenscreen.' : ''}journal.photo${frame ? 'Frame' : ''}${bw ? 'Bw' : ''}`;
+    const vars = { ...(frame ? { frame: frame.label } : {}), ...(green ? { background: green.background.label } : {}) };
+    journal.add('success', 'photo', taken, vars, jpeg);
     setPhase('idle');
   } catch (err) {
     console.error('[shoot] error:', err.stderr || err.message);
@@ -348,7 +391,7 @@ async function runShoot(delay, useLive, frame, { bw = false } = {}) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Photo processing (frame, black & white)                             */
+/* Photo processing (green screen, frame, black & white)               */
 /* ------------------------------------------------------------------ */
 // The guests only wait for the tablet version (1920 px, a fraction of a second); the
 // full-size photo, then its 4K version for the TV, are computed afterwards in a queue,
@@ -362,19 +405,19 @@ const screenFile = (name) => path.join(CACHE_DIR, `view_${name}`);
 const jobFile = (name) => path.join(CACHE_DIR, `pending_${name}.json`);
 
 /**
- * Frame and/or black & white: the original files (JPEG, RAW; in colour, without frame)
+ * Green screen, frame and/or black & white: the original files (JPEG, RAW; in colour, without frame)
  * move to photos/originals/ and the processed version takes the photo's name in photos/.
  */
-async function processPhoto(frame, files, jpeg, { bw = false } = {}) {
-  const what = [frame && `frame "${frame.label}"`, bw && 'black & white'].filter(Boolean).join(' + ');
-  setPhase('framing', { frame: frame ? frame.label : null, bw });
+async function processPhoto(frame, files, jpeg, { bw = false, green = null } = {}) {
+  const what = [green && `background "${green.background.label}"`, frame && `frame "${frame.label}"`, bw && 'black & white'].filter(Boolean).join(' + ');
+  setPhase('framing', { frame: frame ? frame.label : null, bw, green: Boolean(green) });
   const t = Date.now();
   for (const f of files) await fsp.rename(path.join(PHOTOS_DIR, f), path.join(ORIGINALS_DIR, f));
   const original = path.join(ORIGINALS_DIR, jpeg);
-  const job = { name: jpeg, frame, bw, mtime: Date.now() };
+  const job = { name: jpeg, frame, bw, green, mtime: Date.now() };
   try {
     const tmp = `${screenFile(jpeg)}.tmp`;
-    await frames.apply(frame, original, tmp, { bw, maxSize: SIZES.view, quality: QUALITY.view });
+    await frames.apply(frame, original, tmp, { bw, retouch: greenscreen.retouch(green), maxSize: SIZES.view, quality: QUALITY.view });
     await fsp.rename(tmp, screenFile(jpeg));
     chownSafe(screenFile(jpeg));
     await fsp.writeFile(jobFile(jpeg), JSON.stringify(job));
@@ -401,13 +444,13 @@ function queueFullSize(job) {
 }
 
 /** Full-size version of a queued photo, written to photos/ once complete. */
-async function fullSize({ name, frame, bw, mtime }) {
+async function fullSize({ name, frame, bw, green = null, mtime }) {
   const original = path.join(ORIGINALS_DIR, name);
   const target = path.join(PHOTOS_DIR, name);
   const tmp = path.join(PHOTOS_DIR, `.${name}.tmp`); // hidden: not listed while being written
   const t = Date.now();
   try {
-    await frames.apply(frame, original, tmp, { bw });
+    await frames.apply(frame, original, tmp, { bw, retouch: greenscreen.retouch(green) });
     await fsp.rename(tmp, target);
     console.log(`[frame] ${name}: full size in ${Date.now() - t} ms`);
   } catch (err) {
@@ -579,10 +622,8 @@ app.get('/api/status', (req, res) => {
 });
 
 app.post('/api/shoot', async (req, res) => {
-  if (state.busy) return res.status(409).json({ error: tr('shoot.busy') });
-  const storageProblem = storageError({ probe: true }); // real write test before every photo (disk unplugged?)
-  if (storageProblem) return res.status(503).json({ error: translate(storageProblem) });
-  if (!state.camera || state.cameraError) return res.status(503).json({ error: translate(state.cameraError) || tr('status.noCamera') });
+  const unavailable = cameraUnavailable();
+  if (unavailable) return res.status(unavailable.status).json({ error: unavailable.error });
   state.busy = true; // reserved right away (reading the frame is asynchronous)
   // Everything is decided by the admin settings (/admin), not by the tablet
   const delay = DEFAULT_DELAY;
@@ -592,7 +633,8 @@ app.post('/api/shoot', async (req, res) => {
   const frame = found ? { ...found, label: frameLabel(found), ...frameOptions(conf) } : null;
   const useLive = conf.live;
   const bw = Boolean(req.body && req.body.bw); // chosen by the guests on the tablet
-  runShoot(delay, useLive, frame, { bw }); // asynchronous: progress is sent through /api/events
+  const green = await greenscreen.forShot(conf);
+  runShoot(delay, useLive, frame, { bw, green }); // asynchronous: progress is sent through /api/events
   res.status(202).json({ ok: true, delay });
 });
 
@@ -603,7 +645,14 @@ async function settingsDto() {
   return {
     ...conf,
     frame: frame ? { id: frame.id, label: frameLabel(frame), preview: framePreviewUrl(frame) } : null,
+    ...(await greenscreen.settingsDto(conf)),
   };
+}
+/** Settings changed: sent to every screen, and returned (for /admin). */
+async function settingsChanged() {
+  const dto = await settingsDto();
+  broadcast({ type: 'settings', settings: dto });
+  return dto;
 }
 
 app.get('/api/settings', async (_req, res) => res.json(await settingsDto()));
@@ -627,13 +676,14 @@ app.put('/api/settings', async (req, res) => {
     if (b.frame && !(await frames.get(b.frame))) return res.status(400).json({ error: tr('settings.unknownFrame') });
     patch.frame = b.frame || null;
   }
+  const green = await greenscreen.settingsPatch(b);
+  if (green.error) return res.status(400).json({ error: green.error });
+  Object.assign(patch, green.patch);
   const old = settings.get();
   await settings.update(patch, chownSafe);
   await journalSettings(old, settings.get());
-  const dto = await settingsDto();
   console.log(`[admin] settings: ${JSON.stringify(settings.get())}`);
-  broadcast({ type: 'settings', settings: dto });
-  res.json(dto);
+  res.json(await settingsChanged());
 });
 
 /** Settings changed in /admin, one journal entry per change. */
@@ -650,6 +700,7 @@ async function journalSettings(old, now) {
   if (now.live !== old.live) add(now.live ? 'journal.settingLiveOn' : 'journal.settingLiveOff');
   if (now.mirror !== old.mirror) add(now.mirror ? 'journal.settingMirrorOn' : 'journal.settingMirrorOff');
   if (now.lang !== old.lang) add('journal.settingLang', { value: (i18n.list().find((l) => l.id === now.lang) || {}).label });
+  await greenscreen.journalSettings(old, now, add);
 }
 
 // Camera driver: capabilities and help texts in the UI language
@@ -733,6 +784,9 @@ app.get('/api/frames/:id.png', async (req, res) => {
     res.sendStatus(500);
   }
 });
+
+/* ---------- Green screen (optional feature: server/greenscreen/) ---------- */
+if (greenscreen.ENABLED) app.use(greenscreen.router({ cameraUnavailable, captureAside, settingsChanged, translate, chownSafe }));
 
 app.get('/api/live.mjpeg', (req, res) => live.addViewer(req, res));
 

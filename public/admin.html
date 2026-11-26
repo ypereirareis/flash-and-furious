@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="themes.css" />
   <link rel="stylesheet" href="admin.css" />
+  <link rel="stylesheet" href="admin-green.css" /><!-- green screen (optional) -->
 </head>
 <body class="admin">
   <header class="topbar">
@@ -91,7 +92,7 @@
       </label>
     </section>
 
-    <section class="card wide">
+    <section class="card wide" id="framesCard">
       <h2 data-i18n="admin.frames">Frame applied to photos</h2>
       <form class="title-form" id="titleForm" autocomplete="off">
         <label for="titleInput" data-i18n="admin.frameText">Text shown on frames</label>
@@ -122,6 +123,7 @@
 
   <div id="toast" class="toast" hidden></div>
   <script src="i18n.js"></script>
+  <script src="admin-green.js"></script><!-- green screen (optional) -->
   <script src="admin.js"></script>
 </body>
 </html>

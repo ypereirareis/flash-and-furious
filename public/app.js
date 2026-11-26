@@ -232,7 +232,11 @@ function connectEvents() {
           startShooting();
           showOverlay('', t('booth.preparingLive'));
         } else if (ev.phase === 'focusing') showOverlay(undefined, t('booth.focusing'));
-        else if (ev.phase === 'framing') showOverlay(ev.frame ? '🖼️' : '🎞️', t(ev.frame ? 'booth.addingFrame' : 'booth.applyingBw'));
+        else if (ev.phase === 'framing') {
+          if (ev.frame) showOverlay('🖼️', t('booth.addingFrame'));
+          else if (ev.green) showOverlay('🏝️', t('greenscreen.booth.applyingBackground')); // green screen (optional)
+          else showOverlay('🎞️', t('booth.applyingBw'));
+        }
         else if (ev.phase === 'retrying') showOverlay('', t('booth.retrying'));
         else if (ev.phase === 'capturing') {
           hideLive(); // live view stops on capture

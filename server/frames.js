@@ -222,15 +222,22 @@ async function overlay(frame, width, height, opts) {
 
 /**
  * Processes the photo `src` and writes the result to `dst` (JPEG):
- *  - black & white if `bw` (the photo only: frame and decorations keep their colours);
+ *  - `retouch` (optional): async function changing the photo's RGB pixels before black &
+ *    white, ({ data, info }) -> Buffer of the same size (the green screen uses it);
+ *  - black & white if `bw` (photo and background: frame and decorations keep their colours);
  *  - frame (optional) with its text and the theme decorations: `frame` carries { title, locale, deco }.
  * `maxSize`: fast version for the screens, at most this many pixels on its longest side
  * (the full-size photo otherwise). `quality`: JPEG quality.
  */
-async function apply(frame, src, dst, { bw = false, maxSize = null, quality = 92 } = {}) {
+async function apply(frame, src, dst, { bw = false, retouch = null, maxSize = null, quality = 92 } = {}) {
   // apply the EXIF orientation first, to work on the image "the right way up"
   let img = sharp(src).rotate();
   if (maxSize) img = img.resize({ width: maxSize, height: maxSize, fit: 'inside', withoutEnlargement: true });
+  if (retouch) {
+    // in colour first; black & white then applies to the whole result
+    const rgb = await img.removeAlpha().raw().toBuffer({ resolveWithObject: true });
+    img = sharp(await retouch(rgb), { raw: rgb.info });
+  }
   // B&W, slightly more contrast. greyscale() gives the same result as modulate({ saturation: 0 })
   // (within 2/255) about 7x faster; frame and decorations are composited in colour over it.
   if (bw) img = img.greyscale().linear(1.08, -8);

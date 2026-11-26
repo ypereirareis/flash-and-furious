@@ -22,6 +22,15 @@ test('defaults when nothing is saved', () => {
   });
 });
 
+test('settings added by an optional feature: defaults, clean-up, saved in the same file', async () => {
+  settings.extend({ defaults: { extra: 1 }, sanitize: (v) => ({ extra: Number(v.extra) > 0 ? Number(v.extra) : 1 }) });
+  assert.equal(settings.get().extra, 1);
+  assert.equal((await settings.update({ extra: '7' })).extra, 7);
+  assert.equal((await settings.update({ extra: -3 })).extra, 1);
+  assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).extra, 1);
+  assert.equal(settings.load().extra, 1);
+});
+
 test('update: values cleaned up, saved, read again on load', async () => {
   const s = await settings.update({
     frameTitle: `  Happy   birthday\n ${'x'.repeat(100)}`,

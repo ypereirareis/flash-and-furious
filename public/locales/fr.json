@@ -202,5 +202,52 @@
     "settingMirrorOff": "Effet miroir : désactivé",
     "settingLang": "Langue : {value}",
     "skipped": "{count} entrées du journal ignorées (trop nombreuses en une minute)"
+  },
+  "greenscreen": {
+    "noPhoto": "L'appareil n'a pas pris la photo de calibrage. Vérifiez la mise au point (visez une personne devant la toile, ou passez en mise au point manuelle) et réessayez.",
+    "notGreen": "Aucune toile verte trouvée : seulement {coverage} % de la photo est vert. La toile doit occuper une bonne partie de l'image et être bien éclairée.",
+    "failed": "Le calibrage a échoué. Réessayez.",
+    "booth": {
+      "applyingBackground": "Ajout du décor…"
+    },
+    "admin": {
+      "title": "Fond vert",
+      "hint": "Les invités posent devant une toile verte : le vert est remplacé par le décor choisi. Éclairez la toile uniformément, placez les personnes à 1 ou 2 m devant, et évitez les vêtements verts.",
+      "toggle": "Remplacer la toile verte",
+      "toggleHint": "Appliqué à toutes les photos, avec ou sans cadre.",
+      "calibrate": "Calibrer",
+      "calibrating": "Photo de calibrage en cours…",
+      "calibrateHint": "Prend une photo (pas ajoutée à la galerie) pour mesurer le vert exact de votre toile sous vos éclairages. Quelqu'un peut se tenir devant. Recalibrez si l'éclairage change.",
+      "calibrated": "Calibré le {date}.",
+      "notCalibrated": "Pas encore calibré : réglages par défaut pour une toile verte classique.",
+      "tolerance": "Tolérance",
+      "toleranceHint": "Augmentez-la si du vert reste autour des personnes ; diminuez-la si des parties des personnes disparaissent.",
+      "previewAlt": "Photo de calibrage avec le décor",
+      "backgrounds": "Décor",
+      "backgroundsHint": "Ajoutez vos propres décors (JPEG, PNG ou SVG, format 3:2) dans le dossier <code>backgrounds/</code> du projet.",
+      "noBackground": "Aucun décor dans le dossier backgrounds/."
+    },
+    "settings": {
+      "unknownBackground": "Décor inconnu.",
+      "badTolerance": "La tolérance doit être comprise entre 0 et 100."
+    },
+    "journal": {
+      "photo": "Photo prise sur le décor « {background} »",
+      "photoBw": "Photo prise en noir et blanc sur le décor « {background} »",
+      "photoFrame": "Photo prise sur le décor « {background} » avec le cadre « {frame} »",
+      "photoFrameBw": "Photo prise en noir et blanc sur le décor « {background} » avec le cadre « {frame} »",
+      "settingOn": "Fond vert : activé",
+      "settingOff": "Fond vert : désactivé",
+      "settingBackground": "Décor du fond vert : {value}",
+      "settingTolerance": "Tolérance du fond vert : {value}",
+      "calibrated": "Fond vert calibré ({coverage} % de la photo est la toile verte)",
+      "calibrationFailed": "Calibrage du fond vert raté : {reason}"
+    },
+    "backgrounds": {
+      "01-beach": "Plage",
+      "02-space": "Espace",
+      "03-party-lights": "Lumières de fête",
+      "04-city-night": "Ville la nuit"
+    }
   }
 }

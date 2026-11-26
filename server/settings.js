@@ -28,23 +28,35 @@ const MAX_TITLE = 60;
 // Ids used by earlier versions, mapped to the current ones
 const LEGACY_FRAMES = { '02-fete': '02-party' };
 
+/**
+ * Settings added by an optional feature (e.g. the green screen): its defaults, and a
+ * function cleaning up its values. Saved in the same file.
+ */
+const extensions = [];
+function extend({ defaults, sanitize: clean }) {
+  extensions.push({ defaults, clean });
+  current = { ...defaults, ...current };
+}
+
 let current = { ...DEFAULTS };
 
 function load() {
   fs.mkdirSync(CONFIG_DIR, { recursive: true });
   try {
     const saved = JSON.parse(fs.readFileSync(FILE, 'utf8'));
-    current = sanitize({ ...DEFAULTS, ...saved });
+    current = sanitize({ ...allDefaults(), ...saved });
   } catch (_) {
-    current = { ...DEFAULTS };
+    current = allDefaults();
   }
   return current;
 }
 
+const allDefaults = () => Object.assign({ ...DEFAULTS }, ...extensions.map((e) => e.defaults));
+
 function sanitize(s) {
   const frame = LEGACY_FRAMES[s.frame] || s.frame;
   const theme = themes.LEGACY_IDS[s.theme] || s.theme;
-  return {
+  const base = {
     mirror: Boolean(s.mirror),
     live: Boolean(s.live),
     frame: typeof frame === 'string' && /^[\w.-]+$/.test(frame) ? frame : null,
@@ -53,6 +65,7 @@ function sanitize(s) {
     frameDeco: Boolean(s.frameDeco),
     lang: i18n.isValid(s.lang) ? s.lang : DEFAULTS.lang,
   };
+  return Object.assign(base, ...extensions.map((e) => e.clean(s)));
 }
 
 function get() {
@@ -70,4 +83,4 @@ async function update(patch, chown) {
   return get();
 }
 
-module.exports = { load, get, update, CONFIG_DIR, MAX_TITLE };
+module.exports = { load, get, update, extend, CONFIG_DIR, MAX_TITLE };

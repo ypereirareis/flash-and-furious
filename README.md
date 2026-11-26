@@ -56,7 +56,7 @@ PHOTOS_EXTERNAL=true
 | URL | For | Content |
 |---|---|---|
 | `http://<host-ip>:3000/` | guests (tablet) | preview, shutter, gallery: no settings (`/#gallery` opens the gallery directly) |
-| `http://<host-ip>:3000/admin` | the organiser | language, live view, mirror, theme, frame, AF/MF focus, event journal |
+| `http://<host-ip>:3000/admin` | the organiser | language, live view, mirror, theme, green screen, frame, AF/MF focus, event journal |
 | `http://<host-ip>:3000/slideshow` | a screen / TV | photos in a loop, 3 s each, crossfade and slow zoom; new photos are shown first (4K version, 3840 px) |
 
 `/admin` settings are saved in `config/settings.json` (kept across restarts) and applied immediately
@@ -145,6 +145,54 @@ or a power cut, its processing resumes on start-up. A clean stop (`docker compos
 Adding a frame: drop a transparent PNG or a 3:2 SVG into `frames/` (see `frames/README.txt`). No restart needed.
 In SVGs, `{{title}}` is replaced with the text typed in `/admin` (the same for every frame) and `{{date}}` with today's date.
 
+## Green screen
+
+Guests pose in front of a green cloth, and the green is replaced with a background: beach, space, party lights
+and city at night are included, in the `backgrounds/` folder. Set it up in `/admin`, "Green screen" card:
+1. **Calibrate**: takes a photo (not added to the gallery) to measure the exact green of the cloth under your
+   lights. Someone may stand in front of it, which also helps the camera focus. The result is shown right away:
+   the calibration photo with the chosen background. Calibrate again if the lights change.
+2. Choose the **background**, then switch **Replace the green cloth** on.
+3. **Tolerance** (50 = as calibrated): raise it if green remains around people, lower it if parts of people
+   disappear. The preview follows.
+
+Every photo then gets the background, with or without a frame, in two steps like frames (tablet version first,
+full size in the background). In black & white, the background is in black & white too; the frame keeps its
+colours. The original stays untouched in `photos/originals/`.
+
+How it works: a pixel is cloth when its green is well above its red and blue (by thresholds measured at
+calibration). Between "clearly person" and "clearly cloth", it is blended with the background, and the edges
+are softened over 1-2 px, so hair stays natural. The green reflected by the cloth on people's edges and skin
+is removed. The pixel work runs in a separate thread, so the booth stays responsive meanwhile (countdown,
+live view). On a PC, it adds about 0.1 s to the tablet version and 0.3 s to the full size.
+
+For a good result:
+- a matte cloth without creases, wide enough for a group (about 2.5 × 2 m), filling the whole picture;
+- the cloth lit evenly, with no shadows of people on it: people stand 1 to 2 m in front of it;
+- no green clothes or accessories (they would become "transparent"); shiny objects and glasses can reflect green;
+- the camera in manual exposure and white balance, so the green stays the same from one photo to the next.
+
+Adding a background: drop a JPEG, PNG or SVG into `backgrounds/`, ideally 3:2 and at least the camera's
+resolution (see `backgrounds/README.txt`). No restart needed. Live view on the tablet still shows the green cloth.
+
+### Switching it off, or removing it
+
+`GREEN_SCREEN=off` (in `.env`, then `docker compose up -d`) disables the feature entirely: no card in `/admin`,
+no green screen routes, photos never changed. Its settings stay saved for when it is switched back on.
+
+The code is kept apart so that it can be removed easily:
+
+| Where | What |
+|---|---|
+| `server/greenscreen/` | everything on the server: settings, routes, journal entries (`index.js`), images (`images.js`), pixel work (`key.js`, `worker.js`) |
+| `public/admin-green.js`, `public/admin-green.css` | the `/admin` card |
+| `"greenscreen"` block of `public/locales/*.json` | all its texts |
+| `backgrounds/`, `tests/unit/greenscreen.test.js`, `tests/functional/07-greenscreen.test.js` | backgrounds and tests |
+
+Elsewhere, only a few lines marked "green screen": `server/index.js` (the module, its routes, the photo of a
+shot), `public/admin.html` (two tags), `public/app.js` (one message on the tablet), `Dockerfile` and
+`docker-compose.yml` (the backgrounds folder).
+
 ## Automatic or manual focus
 
 On the 1000D, AF/MF is selected with the **physical switch on the lens** (no software can change it).
@@ -230,6 +278,8 @@ The admin page adapts by itself: help texts provided by the driver, sections hid
 | `PUID` / `PGID` | 1000 | Owner of the files created in the photos folder |
 | `PHOTOS_PATH`, `PHOTOS_CREATE`, `PHOTOS_EXTERNAL`, `STORAGE_MIN_FREE_MB` | see [Photos folder](#photos-folder) | Photos folder on the host |
 | `JOURNAL_MAX_ENTRIES`, `JOURNAL_MAX_BYTES`, `JOURNAL_MAX_PER_MINUTE` | 5000, 2097152, 120 | Limits of the [event journal](#event-journal) |
+| `GREEN_SCREEN` | on | `off` disables the [green screen](#green-screen) |
+| `BACKGROUNDS_DIR` | `backgrounds/` (mounted from the project) | [Green screen](#green-screen) backgrounds |
 
 ## The camera stops responding ("PTP Timeout")
 
@@ -263,13 +313,15 @@ Everything runs in Docker, in the app image (no Node needed on the host):
 
 - **Unit tests** (`tests/unit/`, Node's built-in `node:test`): frames (text fitting, transparent parts, colour,
   black & white, orientation, screen versions), settings, storage checks, translations, themes, gphoto2 drivers,
-  photo names and addresses (`server/photos.js`), event journal (limits on disk, in memory and per minute).
+  photo names and addresses (`server/photos.js`), event journal (limits on disk, in memory and per minute),
+  green screen (thresholds, calibration, soft edges, green reflections, backgrounds).
 - **Functional tests** (`tests/functional/`): each test file starts the real server with its own photos and
   config folders, and drives it like the tablet does (HTTP API and events). Covered: camera detection and
   problems (unplugged, used by another program, asleep), photos with and without frame, black & white,
   decorations, upright photo, RAW+JPEG, broken frame, photo refused while another is in progress, live view,
   the queue of full-size photos, storage problems, focus failure, request limit, power cut and clean stop
-  during processing, event journal. A timings table is printed at the end.
+  during processing, event journal, green screen (calibration, backgrounds, photos with frame and in black &
+  white). A timings table is printed at the end.
 - **Fake camera** (`tests/fake-camera/gphoto2`): answers like a Canon EOS 1000D; the tests switch it to
   "unplugged", "used by another program", "asleep", "focus not found" or "slow" while the server runs.
 - **`--real`**: the tests that need the fake camera (failure modes, special photos) are skipped. The
@@ -310,8 +362,11 @@ rebuilt when `package.json` or `package-lock.json` change.
 
 - `GET /api/status`: camera detected or not, shot in progress
 - `POST /api/shoot`: takes a photo (with the `/admin` settings)
-- `GET /api/settings`, `PUT /api/settings` `{ "mirror", "live", "frame", "frameTitle", "theme", "frameDeco", "lang" }`, `GET /api/themes`, `GET /api/languages`: settings
+- `GET /api/settings`, `PUT /api/settings` `{ "mirror", "live", "frame", "frameTitle", "theme", "frameDeco", "lang", "greenScreen", "background", "greenTolerance" }`, `GET /api/themes`, `GET /api/languages`: settings
 - `GET /api/frames`, `GET /api/frames/:id.png`: frame list and preview
+- `GET /api/backgrounds`, `GET /api/backgrounds/:id.jpg`: green screen backgrounds and their thumbnails
+- `POST /api/greenscreen/calibrate`: takes a calibration photo of the green cloth (`422` if no green cloth is seen);
+  `GET /api/greenscreen/preview.jpg`: that photo with the current background and tolerance
 - `GET /api/camera`: driver, capabilities and camera help texts
 - `POST /api/focus`: one-off focus
 - `GET /api/photos`: photo list (most recent first)
