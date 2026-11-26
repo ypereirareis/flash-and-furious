@@ -20,7 +20,7 @@ services:
           # missing folder: created (then handed over to PUID:PGID by the entrypoint),
           # or "false" to refuse to start instead
           create_host_path: ${PHOTOS_CREATE:-true}
-      # Frames (transparent PNG or SVG), editable without rebuilding the image
+      # Frames (optional): transparent PNG or SVG, editable without rebuilding the image
       - ./frames:/app/frames:ro
       # Green screen (optional) backgrounds (JPEG, PNG or SVG), editable without rebuilding the image
       - ./backgrounds:/app/backgrounds:ro
@@ -53,6 +53,8 @@ services:
       - LOOK_MESSAGE_SECONDS=${LOOK_MESSAGE_SECONDS:-2}
       - PRE_MESSAGE_SECONDS=${PRE_MESSAGE_SECONDS:-2}
       - FOCUS_BEFORE_END=${FOCUS_BEFORE_END:-2}
+      # Frames (optional): off = feature disabled
+      - FRAMES=${FRAMES:-on}
       # Green screen (optional): off = feature disabled
       - GREEN_SCREEN=${GREEN_SCREEN:-on}
       - LIVE_QUALITY=${LIVE_QUALITY:-70}

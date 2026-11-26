@@ -11,7 +11,8 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="themes.css" />
   <link rel="stylesheet" href="admin.css" />
-  <link rel="stylesheet" href="admin-green.css" /><!-- green screen (optional) -->
+  <link rel="stylesheet" href="greenscreen/admin.css" /><!-- green screen (optional) -->
+  <link rel="stylesheet" href="frames/frames.css" /><!-- frames (optional) -->
 </head>
 <body class="admin">
   <header class="topbar">
@@ -92,19 +93,6 @@
       </label>
     </section>
 
-    <section class="card wide" id="framesCard">
-      <h2 data-i18n="admin.frames">Frame applied to photos</h2>
-      <form class="title-form" id="titleForm" autocomplete="off">
-        <label for="titleInput" data-i18n="admin.frameText">Text shown on frames</label>
-        <div class="title-row">
-          <input id="titleInput" type="text" maxlength="60" data-i18n-attr="placeholder:admin.framePlaceholder" />
-          <button type="submit" class="big-btn save-btn" data-i18n="admin.save">Save</button>
-        </div>
-        <small data-i18n="admin.frameTextHint"></small>
-      </form>
-      <p class="hint" data-i18n-html="admin.framesHint"></p>
-      <div id="frameGrid" class="frame-grid"></div>
-    </section>
   </main>
 
   <dialog id="journalDialog" class="journal-dialog" aria-labelledby="journalTitle">
@@ -123,7 +111,9 @@
 
   <div id="toast" class="toast" hidden></div>
   <script src="i18n.js"></script>
-  <script src="admin-green.js"></script><!-- green screen (optional) -->
+  <!-- optional features: their cards, in this order after the others -->
+  <script src="greenscreen/admin.js"></script><!-- green screen (optional) -->
+  <script src="frames/admin.js"></script><!-- frames (optional) -->
   <script src="admin.js"></script>
 </body>
 </html>

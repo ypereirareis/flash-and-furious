@@ -24,7 +24,7 @@ async function shootThenStop(server, signal) {
 async function newServer(name) {
   const server = await startServer(name);
   if (!REAL) server.camera.photo(await photos.p24());
-  await server.settings({ frame: '04-elegant', frameTitle: 'Restart test' });
+  await server.settings({ theme: 'christmas', photoDeco: true }); // edited photos
   return server;
 }
 

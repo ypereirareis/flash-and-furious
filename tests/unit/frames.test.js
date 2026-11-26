@@ -6,14 +6,27 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const sharp = require('sharp');
-const frames = require('../../server/frames');
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'frames-'));
+process.env.CONFIG_DIR = tmp;
+process.env.FRAME_TITLE = 'Our party';
+const settings = require('../../server/settings');
+const feature = require('../../server/frames');
+const frames = require('../../server/frames/render');
+const photo = require('../../server/photo');
+const decorations = require('../../server/decorations');
 test.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
 const opts = { title: 'Coucou Marjo !!!', locale: 'fr-FR', deco: null };
+const BIRTHDAY = { id: 'birthday', corner: path.join(__dirname, '../../public/deco/birthday-corner.svg') };
+
+/** A photo edited with this frame (and its decorations), as the server does. */
+function apply(frame, src, dst, options = {}) {
+  const overlays = [feature.overlay(frame), decorations.overlay(frame && frame.deco)].filter(Boolean);
+  return photo.process(src, dst, { ...options, overlays });
+}
 
 /** Colourful 1200 × 800 test photo (left half red, right half blue), with an EXIF orientation. */
-async function photo(name, { orientation } = {}) {
+async function testPhoto(name, { orientation } = {}) {
   const file = path.join(tmp, name);
   const half = (r, g, b) => ({ create: { width: 600, height: 800, channels: 3, background: { r, g, b } } });
   let img = sharp({ create: { width: 1200, height: 800, channels: 3, background: '#000' } }).composite([
@@ -84,9 +97,9 @@ test('opaqueParts: transparent areas left out, the rest is pixel-identical', asy
 });
 
 test('apply: frame on a colour photo, same size, colours kept', async () => {
-  const src = await photo('colour.jpg');
+  const src = await testPhoto('colour.jpg');
   const dst = path.join(tmp, 'colour-out.jpg');
-  await frames.apply({ ...(await frames.get('02-party')), ...opts }, src, dst);
+  await apply({ ...(await frames.get('02-party')), ...opts }, src, dst);
   const m = await sharp(dst).metadata();
   assert.deepEqual([m.width, m.height, m.format], [1200, 800, 'jpeg']);
   const [r, , b] = await pixel(dst, 300, 400);
@@ -94,46 +107,39 @@ test('apply: frame on a colour photo, same size, colours kept', async () => {
 });
 
 test('apply: black & white photo, frame still in colour', async () => {
-  const src = await photo('bw.jpg');
+  const src = await testPhoto('bw.jpg');
   const dst = path.join(tmp, 'bw-out.jpg');
   const frame = { ...(await frames.get('02-party')), ...opts };
-  await frames.apply(frame, src, dst, { bw: true });
+  await apply(frame, src, dst, { bw: true });
   const [r, g, b] = await pixel(dst, 300, 400);
   assert.ok(Math.max(r, g, b) - Math.min(r, g, b) <= 3, `photo is grey: ${r},${g},${b}`);
   const border = await pixel(dst, 4, 400); // rainbow border of the Party frame
   assert.ok(Math.max(...border) - Math.min(...border) > 60, `frame keeps its colours: ${border}`);
 });
 
-test('apply: black & white without frame', async () => {
-  const dst = path.join(tmp, 'bw-noframe.jpg');
-  await frames.apply(null, await photo('bw2.jpg'), dst, { bw: true });
-  const [r, g, b] = await pixel(dst, 900, 400);
-  assert.ok(Math.max(r, g, b) - Math.min(r, g, b) <= 3);
-});
-
 test('apply: EXIF orientation applied (portrait photo stays portrait)', async () => {
   const dst = path.join(tmp, 'rotated-out.jpg');
-  await frames.apply({ ...(await frames.get('01-polaroid')), ...opts }, await photo('rotated.jpg', { orientation: 6 }), dst);
+  await apply({ ...(await frames.get('01-polaroid')), ...opts }, await testPhoto('rotated.jpg', { orientation: 6 }), dst);
   const m = await sharp(dst).metadata();
   assert.deepEqual([m.width, m.height], [800, 1200]);
 });
 
 test('apply: screen version limited to maxSize, never enlarged', async () => {
-  const src = await photo('small.jpg');
+  const src = await testPhoto('small.jpg');
   const frame = { ...(await frames.get('03-cinema')), ...opts };
-  await frames.apply(frame, src, path.join(tmp, 'max.jpg'), { maxSize: 600, quality: 80 });
+  await apply(frame, src, path.join(tmp, 'max.jpg'), { maxSize: 600, quality: 80 });
   const m = await sharp(path.join(tmp, 'max.jpg')).metadata();
   assert.deepEqual([m.width, m.height], [600, 400]);
-  await frames.apply(frame, src, path.join(tmp, 'big.jpg'), { maxSize: 3840 });
+  await apply(frame, src, path.join(tmp, 'big.jpg'), { maxSize: 3840 });
   const big = await sharp(path.join(tmp, 'big.jpg')).metadata();
   assert.deepEqual([big.width, big.height], [1200, 800]);
 });
 
 test('apply: same output on every call (cached frame layers)', async () => {
-  const src = await photo('cache.jpg');
-  const frame = { ...(await frames.get('04-elegant')), ...opts, deco: { id: 'birthday', corner: path.join(__dirname, '../../public/deco/birthday-corner.svg') } };
-  await frames.apply(frame, src, path.join(tmp, 'c1.jpg'));
-  await frames.apply(frame, src, path.join(tmp, 'c2.jpg'));
+  const src = await testPhoto('cache.jpg');
+  const frame = { ...(await frames.get('04-elegant')), ...opts, deco: BIRTHDAY };
+  await apply(frame, src, path.join(tmp, 'c1.jpg'));
+  await apply(frame, src, path.join(tmp, 'c2.jpg'));
   assert.ok(fs.readFileSync(path.join(tmp, 'c1.jpg')).equals(fs.readFileSync(path.join(tmp, 'c2.jpg'))));
 });
 
@@ -141,4 +147,29 @@ test('preview: transparent PNG of the requested size', async () => {
   const png = await frames.preview(await frames.get('01-polaroid'), opts);
   const m = await sharp(png).metadata();
   assert.deepEqual([m.format, m.width, m.height, m.channels], ['png', 1200, 800, 4]);
+});
+
+test('settings: frame and title added to the app settings, cleaned up', async () => {
+  let s = settings.load();
+  assert.deepEqual([s.frame, s.frameTitle], [null, 'Our party']);
+  s = await settings.update({ frame: '../../etc/passwd', frameTitle: `  Happy   birthday\n ${'x'.repeat(100)}` });
+  assert.equal(s.frame, null);
+  assert.equal(s.frameTitle.length, feature.MAX_TITLE);
+  assert.match(s.frameTitle, /^Happy birthday x+$/);
+});
+
+test('hooks: frame of a shot, checked settings, journal entries', async () => {
+  await settings.update({ frame: null, frameTitle: 'Party' });
+  assert.equal(await feature.forShot(), null);
+  assert.equal(feature.overlay(null), null);
+  assert.equal(feature.step(null), null);
+  await settings.update({ frame: '02-party' });
+  const frame = await feature.forShot();
+  assert.deepEqual([frame.id, frame.label, frame.title, frame.locale], ['02-party', 'Party', 'Party', 'en-GB']);
+  assert.deepEqual(feature.journalDetail(frame), { key: 'frames.journal.with', vars: { frame: 'Party' } });
+  assert.deepEqual(await feature.settingsPatch({ frame: 'nope' }), { error: 'Unknown frame.' });
+  assert.deepEqual(await feature.settingsPatch({ frame: '', frameTitle: 'Hi', mirror: true }), { patch: { frame: null, frameTitle: 'Hi' } });
+  const added = [];
+  await feature.journalSettings({ frame: null, frameTitle: 'a' }, { frame: '01-polaroid', frameTitle: 'b' }, (k, v) => added.push([k, v]));
+  assert.deepEqual(added, [['frames.journal.settingFrame', { value: 'Polaroid' }], ['frames.journal.settingTitle', { value: 'b' }]]);
 });

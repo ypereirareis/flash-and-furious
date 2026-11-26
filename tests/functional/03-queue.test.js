@@ -13,7 +13,7 @@ test.before(async () => {
   // no countdown: the next shot starts while the previous full-size photo is being computed
   server = await startServer('queue', { env: { DEFAULT_DELAY: '0' } });
   if (!REAL) server.camera.photo(await photos.p24());
-  await server.settings({ frame: '02-party', theme: 'christmas', frameDeco: true, frameTitle: 'Queue test' });
+  await server.settings({ theme: 'christmas', photoDeco: true }); // every photo edited
 });
 test.after(() => server.stop());
 
@@ -43,7 +43,7 @@ test('burst of photos: each one shown at once, full sizes computed in order', as
   }
   assert.deepEqual(fs.readdirSync(server.cacheDir).filter((f) => f.startsWith('pending_')), []);
   // order of the queue, from the server logs
-  const done = server.logs.map((l) => l.match(/\[frame\] (\S+): full size in/)).filter(Boolean).map((m) => m[1]);
+  const done = server.logs.map((l) => l.match(/\[photo\] (\S+): full size in/)).filter(Boolean).map((m) => m[1]);
   assert.deepEqual(done, shots.map((p) => p.name));
 });
 

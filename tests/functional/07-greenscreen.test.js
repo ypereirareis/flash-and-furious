@@ -73,10 +73,10 @@ test('calibration: measured, preview of the result, nothing added to the gallery
 });
 
 test('photo: cloth replaced on every version, original kept as is', { skip }, async () => {
-  await server.settings({ greenScreen: true, background: '2-cyan', frame: null });
+  await server.settings({ greenScreen: true, background: '2-cyan' });
   const shot = await shoot(server, { label: 'green screen' });
   assert.deepEqual(shot.errors, []);
-  assert.ok(shot.events.some((e) => e.type === 'phase' && e.phase === 'framing' && e.green), 'tablet told');
+  assert.ok(shot.events.some((e) => e.type === 'phase' && e.phase === 'framing' && e.message === 'Adding the background…'), 'tablet told');
   const { name } = shot.photo;
   await waitFullSize(server, name);
   const final = path.join(server.photosDir, name);
@@ -89,20 +89,22 @@ test('photo: cloth replaced on every version, original kept as is', { skip }, as
   fs.writeFileSync(view, Buffer.from(await (await server.api(shot.photo.view)).arrayBuffer()));
   assert.ok(near(await colourAt(view, 0.05, 0.05), CYAN));
   const entry = await lastJournal();
-  assert.equal(entry.message, 'Photo taken on the “Cyan” background');
+  assert.equal(entry.message, 'Photo taken: “Cyan” background');
   assert.equal(entry.detail, name);
 });
 
-test('photo with a frame in black & white: background in grey, frame in colour', { skip }, async () => {
-  await server.settings({ frame: '02-party' });
-  const shot = await shoot(server, { bw: true, label: 'green screen + frame, B&W' });
+test('photo in black & white with the theme decorations: background in grey, drawings in colour', { skip }, async () => {
+  await server.settings({ theme: 'birthday', photoDeco: true });
+  const shot = await shoot(server, { bw: true, label: 'green screen + decorations, B&W' });
   await waitFullSize(server, shot.photo.name);
   const final = path.join(server.photosDir, shot.photo.name);
   const bg = await colourAt(final, 0.2, 0.3);
   assert.ok(isGrey(bg), `background grey: ${bg}`);
-  assert.ok(!isGrey(await colourAt(final, 0.002, 0.5)), 'frame in colour');
-  assert.equal((await lastJournal()).message, 'Photo taken in black & white on the “Cyan” background with the “Party” frame');
-  await server.settings({ frame: null });
+  const corner = [];
+  for (let x = 0.02; x < 0.25; x += 0.02) corner.push(await colourAt(final, x, 0.9));
+  assert.ok(corner.some((c) => !isGrey(c)), 'drawing in colour');
+  assert.equal((await lastJournal()).message, 'Photo taken: “Cyan” background, theme decorations, black & white');
+  await server.settings({ photoDeco: false });
 });
 
 test('settings: checked, and written in the journal', { skip }, async () => {

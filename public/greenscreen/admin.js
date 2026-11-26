@@ -42,9 +42,8 @@
     </div>
     <h3 data-i18n="greenscreen.admin.backgrounds"></h3>
     <p class="hint" data-i18n-html="greenscreen.admin.backgroundsHint"></p>
-    <div id="backgroundGrid" class="frame-grid"></div>`;
-  const anchor = document.getElementById('framesCard');
-  anchor.parentNode.insertBefore(card, anchor);
+    <div id="backgroundGrid" class="pick-grid"></div>`;
+  document.querySelector('.admin-main').append(card);
   const el = (id) => card.querySelector(`#${id}`);
 
   let current = {};
@@ -73,7 +72,7 @@
     const chosen = s.background ? s.background.id : null;
     const tiles = backgrounds.map((b) => {
       const node = tile(b.label, b.preview, chosen === b.id, () => save({ background: b.id }));
-      node.querySelector('.frame-thumb').classList.add('bg-thumb');
+      node.querySelector('.pick-thumb').classList.add('bg-thumb');
       return node;
     });
     if (!tiles.length) tiles.push(Object.assign(document.createElement('p'), { className: 'hint', textContent: t('greenscreen.admin.noBackground') }));

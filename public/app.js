@@ -6,7 +6,7 @@ const $ = (id) => document.getElementById(id);
 const els = {
   status: $('status'), statusText: $('statusText'), count: $('count'),
   shootBtn: $('shootBtn'), live: $('live'), review: $('review'), liveMsg: $('liveMsg'),
-  lastThumb: $('lastThumb'), frameOverlay: $('frameOverlay'),
+  lastThumb: $('lastThumb'),
   grid: $('grid'), empty: $('empty'),
   overlay: $('overlay'), countdown: $('countdown'), overlayText: $('overlayText'), overlayHint: $('overlayHint'), flash: $('flash'),
   viewer: $('viewer'), viewerImg: $('viewerImg'), viewerInfo: $('viewerInfo'),
@@ -56,7 +56,7 @@ function hideLive() {
   renderLiveMsg();
 }
 function renderLiveMsg() {
-  renderFrameOverlay();
+  renderStage();
   let text = !liveOn && els.review.hidden ? t('booth.tapToShoot') : '';
   if (cameraError && !busy) text = `⚠️ ${cameraError}`;
   els.liveMsg.textContent = text;
@@ -64,7 +64,9 @@ function renderLiveMsg() {
 }
 
 /* ---------- Settings (set in /admin) ---------- */
-let settings = { mirror: true, live: false, frame: null };
+let settings = { mirror: true, live: false };
+// Optional features shown on this screen, in their own files (e.g. frames/booth.js): { render({ settings, stageFree }) }
+const parts = window.BOOTH_PARTS || [];
 
 function applySettings(next) {
   if (next.lang && next.lang !== I18N.lang) return location.reload(); // language changed in /admin
@@ -73,17 +75,18 @@ function applySettings(next) {
   // ?theme=xxx in the address: preview a theme on this screen only (nothing is saved)
   const previewTheme = new URLSearchParams(location.search).get('theme');
   if (previewTheme || settings.theme) document.documentElement.dataset.theme = previewTheme || settings.theme;
-  if (settings.frame) els.frameOverlay.src = settings.frame.preview;
-  renderFrameOverlay();
+  renderStage();
 }
 async function loadSettings() {
   try { applySettings(await fetch('/api/settings').then((r) => r.json())); } catch (_) { /* keep the defaults */ }
 }
 
-// The frame is laid over live view (and the empty screen) so people can place themselves inside it
-function renderFrameOverlay() {
-  els.frameOverlay.hidden = !settings.frame || !(liveOn || els.review.hidden);
-  // the last photo (framed or not) is clearly labelled as such
+// What is laid over the stage: optional features (e.g. the frame over live view), and the
+// "last photo" badge
+function renderStage() {
+  const stageFree = liveOn || els.review.hidden; // live view or the empty screen, not the last photo
+  parts.forEach((p) => p.render({ settings, stageFree }));
+  // the last photo (edited or not) is clearly labelled as such
   const badge = $('lastBadge');
   badge.hidden = els.review.hidden;
   if (!els.review.hidden && photos[0]) {
@@ -120,7 +123,7 @@ document.addEventListener('contextmenu', (e) => { if (e.target.closest('img')) e
 
 /* ---------- Black & white (guests' choice, remembered on this tablet) ---------- */
 let bw = false;
-try { bw = (localStorage.getItem('flash-and-furious.bw') ?? localStorage.getItem('photobooth.bw')) === '1'; } catch (_) { /* storage unavailable */ }
+try { bw = localStorage.getItem('flash-and-furious.bw') === '1'; } catch (_) { /* storage unavailable */ }
 function renderBw() {
   const btn = $('bwBtn');
   btn.classList.toggle('active', bw);
@@ -232,11 +235,7 @@ function connectEvents() {
           startShooting();
           showOverlay('', t('booth.preparingLive'));
         } else if (ev.phase === 'focusing') showOverlay(undefined, t('booth.focusing'));
-        else if (ev.phase === 'framing') {
-          if (ev.frame) showOverlay('🖼️', t('booth.addingFrame'));
-          else if (ev.green) showOverlay('🏝️', t('greenscreen.booth.applyingBackground')); // green screen (optional)
-          else showOverlay('🎞️', t('booth.applyingBw'));
-        }
+        else if (ev.phase === 'framing') showOverlay(ev.icon, ev.message); // photo being edited: message from the server
         else if (ev.phase === 'retrying') showOverlay('', t('booth.retrying'));
         else if (ev.phase === 'capturing') {
           hideLive(); // live view stops on capture

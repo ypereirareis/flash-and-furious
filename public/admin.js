@@ -3,7 +3,7 @@
 /* Admin page. Texts come from /locales/<lang>.json through t() (see i18n.js). */
 
 const $ = (id) => document.getElementById(id);
-let settings = { mirror: true, live: false, frame: null };
+let settings = { mirror: true, live: false };
 let focusMode = null; // 'auto' | 'manual' | null, read from the camera
 let focusWanted = null;
 let busy = false;
@@ -57,11 +57,9 @@ function applySettings(s) {
   settings = s;
   $('liveToggle').checked = Boolean(s.live);
   $('mirrorToggle').checked = Boolean(s.mirror);
-  $('decoToggle').checked = Boolean(s.frameDeco);
+  $('decoToggle').checked = Boolean(s.photoDeco);
   // don't overwrite text being typed
-  if (document.activeElement !== $('titleInput')) $('titleInput').value = s.frameTitle || '';
   if (s.theme) document.documentElement.dataset.theme = s.theme;
-  renderFrames();
   renderThemes();
   renderLanguages();
   parts.forEach((p) => p.render(s));
@@ -71,16 +69,7 @@ async function loadSettings() {
 }
 $('liveToggle').addEventListener('change', (e) => save({ live: e.target.checked }));
 $('mirrorToggle').addEventListener('change', (e) => save({ mirror: e.target.checked }));
-$('decoToggle').addEventListener('change', async (e) => {
-  await save({ frameDeco: e.target.checked });
-  loadFrames(); // frame previews with or without decorations
-});
-$('titleForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  $('titleInput').blur();
-  await save({ frameTitle: $('titleInput').value });
-  loadFrames(); // frame previews with the new text
-});
+$('decoToggle').addEventListener('change', (e) => save({ photoDeco: e.target.checked }));
 
 /* ---------- Language ---------- */
 let languages = [];
@@ -136,32 +125,24 @@ function renderThemes() {
     const cap = document.createElement('span');
     cap.textContent = th.label;
     b.append(sw, cap);
-    b.addEventListener('click', async () => {
-      await save({ theme: th.id });
-      if (settings.frameDeco) loadFrames(); // preview decorations change with the theme
-    });
+    b.addEventListener('click', () => save({ theme: th.id }));
     return b;
   });
   $('themeGrid').replaceChildren(...tiles);
-  // explanation depending on the chosen theme and frame
+  // explanation depending on the chosen theme
   const cur = themeList.find((th) => th.id === settings.theme);
   let hint = t('admin.decoHint');
   if (cur && !cur.hasDeco) hint += t('admin.decoNone', { theme: cur.label });
-  else if (!settings.frame) hint += t('admin.decoNoFrame');
   $('decoHint').textContent = hint;
 }
 
-/* ---------- Frames ---------- */
-let frameList = [];
-async function loadFrames() {
-  try { frameList = await fetch('/api/frames').then((r) => r.json()); } catch (_) { frameList = []; }
-  renderFrames();
-}
-function tile(label, previewUrl, selected, onPick) {
+/* ---------- Picture tiles (cards of the optional features: frames, backgrounds) ---------- */
+/** A tile to pick: its picture (or `placeholder` written on an empty one) and its name. */
+function tile(label, previewUrl, selected, onPick, placeholder = '') {
   const b = document.createElement('button');
-  b.className = `frame-tile${selected ? ' selected' : ''}`;
+  b.className = `pick-tile${selected ? ' selected' : ''}`;
   const box = document.createElement('div');
-  box.className = 'frame-thumb';
+  box.className = 'pick-thumb';
   if (previewUrl) {
     const img = document.createElement('img');
     img.src = previewUrl;
@@ -169,19 +150,13 @@ function tile(label, previewUrl, selected, onPick) {
     box.appendChild(img);
   } else {
     box.classList.add('none');
-    box.dataset.label = t('admin.photoOnly');
+    box.dataset.label = placeholder;
   }
   const cap = document.createElement('span');
   cap.textContent = label;
   b.append(box, cap);
   b.addEventListener('click', onPick);
   return b;
-}
-function renderFrames() {
-  const cur = settings.frame ? settings.frame.id : null;
-  const tiles = [tile(t('admin.noFrame'), null, !cur, () => save({ frame: null }))];
-  frameList.forEach((f) => tiles.push(tile(f.label, f.preview, cur === f.id, () => save({ frame: f.id }))));
-  $('frameGrid').replaceChildren(...tiles);
 }
 
 /* ---------- Focus (mode read from the camera) ---------- */
@@ -364,7 +339,7 @@ function toast(msg, kind) {
   const initial = await loadSettingsLang(); // language first, so every text is translated
   refreshStatus();
   loadNetwork();
-  await Promise.all([loadCameraInfo(), loadFrames(), loadThemes(), loadLanguages(), ...parts.map((p) => p.load())]);
+  await Promise.all([loadCameraInfo(), loadThemes(), loadLanguages(), ...parts.map((p) => p.load())]);
   if (initial) applySettings(initial);
   else loadSettings().catch(() => {});
   connectEvents();

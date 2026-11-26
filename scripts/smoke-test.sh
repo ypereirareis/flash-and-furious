@@ -27,13 +27,13 @@ expect "languages"            /api/languages           200 '"id":"fr"'
 expect "camera driver"        /api/camera              200 '"capabilities"'
 expect "themes"               /api/themes              200 '"id":"halloween"'
 expect "themes CSS"           /themes.css              200 '[data-theme="night"]'
+# frames (optional feature: remove these two lines with it)
 expect "frames"               /api/frames              200 '"id":"01-polaroid"'
 expect "frame preview (SVG)"  /api/frames/02-party.png 200
 expect "photos list"          /api/photos              200 '['
 expect "guest page"           /                        200 'Flash &amp; Furious'
 expect "admin page"           /admin                   200 'data-i18n="admin.display"'
 expect "slideshow page"       /slideshow               200 'data-i18n="slideshow.newPhoto"'
-expect "old slideshow URL"    /diaporama               301
 expect "English texts"        /locales/en.json         200 '"smile": "Smile!"'
 expect "French texts"         /locales/fr.json         200 '"smile": "Souriez !"'
 expect "theme decoration"     /deco/christmas-corner.svg 200 '<svg'

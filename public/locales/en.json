@@ -33,9 +33,9 @@
     "smile": "Smile!",
     "preparingLive": "Starting live view…",
     "focusing": "Focusing…",
-    "addingFrame": "Adding the frame…",
     "applyingBw": "Converting to black & white…",
-    "retrying": "Focusing is tricky, trying again…"
+    "retrying": "Focusing is tricky, trying again…",
+    "addingDeco": "Adding the decorations…"
   },
   "slideshow": {
     "newPhoto": "New photo!",
@@ -73,17 +73,9 @@
     "theme": "Colour theme",
     "themeHint": "Tablet colours (background, preview area…). Changes apply to the tablet immediately.",
     "deco": "Theme decorations on photos",
-    "decoHint": "Also adds the theme drawings (pumpkins, fir trees, cake…) to the photos, on top of the chosen frame.",
+    "decoHint": "Also adds the theme drawings (pumpkins, fir trees, cake…) to the photos, with or without a frame.",
     "decoNone": " The “{theme}” theme has no decorations: no effect.",
-    "decoNoFrame": " Choose a frame below so the decorations are added.",
-    "frames": "Frame applied to photos",
-    "frameText": "Text shown on frames",
-    "framePlaceholder": "e.g. Lea & Sam's wedding",
-    "save": "Save",
-    "frameTextHint": "The same text for every frame. Today's date is added automatically on frames that show it.",
-    "framesHint": "Add your own frames (transparent PNG or SVG, 3:2 ratio) to the project's <code>frames/</code> folder.",
-    "noFrame": "No frame",
-    "photoOnly": "Photo only"
+    "save": "Save"
   },
   "shoot": {
     "preMessage": "Don't move until the flash!!",
@@ -97,7 +89,6 @@
   },
   "settings": {
     "unknownTheme": "Unknown theme.",
-    "unknownFrame": "Unknown frame.",
     "unknownLang": "Unknown language."
   },
   "camera": {
@@ -155,12 +146,6 @@
     "birthday": "Birthday",
     "pastel": "Light pastel"
   },
-  "frames": {
-    "01-polaroid": "Polaroid",
-    "02-party": "Party",
-    "03-cinema": "Cinema",
-    "04-elegant": "Elegant"
-  },
   "journal": {
     "open": "Journal",
     "title": "Event journal",
@@ -176,9 +161,11 @@
     "stopping": "Photobooth stopped",
     "stoppingWait": "Photobooth stopping: waiting for {count} photo(s) being processed",
     "photo": "Photo taken",
-    "photoBw": "Photo taken in black & white",
-    "photoFrame": "Photo taken with the “{frame}” frame",
-    "photoFrameBw": "Photo taken in black & white with the “{frame}” frame",
+    "photoWith": "Photo taken: {details}",
+    "with": {
+      "bw": "black & white",
+      "deco": "theme decorations"
+    },
     "shootFailed": "No photo: {reason}",
     "retouchFailed": "The frame could not be applied: photo saved as is",
     "resumed": "{count} photo(s) interrupted by a stop: processing resumed",
@@ -190,9 +177,6 @@
     "storageBlocked": "{reason}",
     "storageOk": "Photo storage available again",
     "rateLimited": "Too many requests from the device {ip}: refused for a minute",
-    "settingFrame": "Frame: {value}",
-    "settingNoFrame": "Frame: none",
-    "settingTitle": "Frame text: “{value}”",
     "settingTheme": "Theme: {value}",
     "settingDecoOn": "Theme decorations on photos: on",
     "settingDecoOff": "Theme decorations on photos: off",
@@ -202,6 +186,35 @@
     "settingMirrorOff": "Mirror effect: off",
     "settingLang": "Language: {value}",
     "skipped": "{count} journal entries skipped (too many in a minute)"
+  },
+  "frames": {
+    "names": {
+      "01-polaroid": "Polaroid",
+      "02-party": "Party",
+      "03-cinema": "Cinema",
+      "04-elegant": "Elegant"
+    },
+    "booth": {
+      "adding": "Adding the frame…"
+    },
+    "admin": {
+      "title": "Frame applied to photos",
+      "text": "Text shown on frames",
+      "placeholder": "e.g. Lea & Sam's wedding",
+      "textHint": "The same text for every frame. Today's date is added automatically on frames that show it.",
+      "hint": "Add your own frames (transparent PNG or SVG, 3:2 ratio) to the project's <code>frames/</code> folder.",
+      "none": "No frame",
+      "photoOnly": "Photo only"
+    },
+    "settings": {
+      "unknownFrame": "Unknown frame."
+    },
+    "journal": {
+      "with": "“{frame}” frame",
+      "settingFrame": "Frame: {value}",
+      "settingNoFrame": "Frame: none",
+      "settingTitle": "Frame text: “{value}”"
+    }
   },
   "greenscreen": {
     "noPhoto": "The camera did not take the calibration photo. Check the focus (aim at a person in front of the cloth, or switch to manual focus) and try again.",
@@ -232,10 +245,7 @@
       "badTolerance": "The tolerance must be between 0 and 100."
     },
     "journal": {
-      "photo": "Photo taken on the “{background}” background",
-      "photoBw": "Photo taken in black & white on the “{background}” background",
-      "photoFrame": "Photo taken on the “{background}” background with the “{frame}” frame",
-      "photoFrameBw": "Photo taken in black & white on the “{background}” background with the “{frame}” frame",
+      "with": "“{background}” background",
       "settingOn": "Green screen: on",
       "settingOff": "Green screen: off",
       "settingBackground": "Green screen background: {value}",

@@ -44,16 +44,15 @@ for (const lang of langs.filter((l) => l !== 'en')) {
 
 // 2. Keys used in the code
 const files = [
-  ...['public/app.js', 'public/admin.js', 'public/admin-green.js', 'public/index.html', 'public/admin.html', 'public/slideshow.html'],
-  'server/index.js',
-  'server/journal.js',
-  'server/greenscreen/index.js',
+  ...['public/app.js', 'public/admin.js', 'public/index.html', 'public/admin.html', 'public/slideshow.html'],
+  ...['public/frames/admin.js', 'public/frames/booth.js', 'public/greenscreen/admin.js'],
+  ...['server/index.js', 'server/journal.js', 'server/frames/index.js', 'server/greenscreen/index.js'],
 ];
 const used = new Set();
 const add = (re, text, map = (m) => m[1]) => { for (const m of text.matchAll(re)) used.add(map(m)); };
 for (const f of files) {
   const s = read(f);
-  add(/'((?:app|status|booth|slideshow|admin|shoot|settings|storage|journal|greenscreen)\.\w+(?:\.\w+)*)'/g, s);
+  add(/'((?:app|status|booth|slideshow|admin|shoot|settings|storage|journal|frames|greenscreen)\.\w+(?:\.\w+)*)'/g, s);
   add(/data-i18n(?:-html)?="([\w.]+)"/g, s);
   for (const m of s.matchAll(/data-i18n-attr="([^"]+)"/g)) m[1].split(';').forEach((p) => used.add(p.split(':')[1].trim()));
 }

@@ -1,15 +1,17 @@
 'use strict';
 
 /**
- * Frames: PNG (transparent) or SVG files from the frames/ folder.
+ * Frame images: PNG (transparent) or SVG files from the frames/ folder.
  * In SVGs, {{title}} and {{date}} are replaced at render time.
  */
 
 const path = require('path');
 const fsp = require('fs').promises;
 const sharp = require('sharp');
+const { toRaw, rawLayer } = require('../photo');
+const decorations = require('../decorations');
 
-const FRAMES_DIR = path.resolve(process.env.FRAMES_DIR || path.join(__dirname, '..', 'frames'));
+const FRAMES_DIR = path.resolve(process.env.FRAMES_DIR || path.join(__dirname, '..', '..', 'frames'));
 const FRAME_RE = /\.(png|svg)$/i;
 
 const xmlEscape = (s) => String(s).replace(/[<>&'"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c]));
@@ -38,13 +40,21 @@ async function list() {
   const out = [];
   for (const file of entries.filter((f) => FRAME_RE.test(f) && !f.startsWith('.')).sort()) {
     const full = path.join(FRAMES_DIR, file);
-    const st = await fsp.stat(full);
     let label = labelFromFile(file);
-    if (/\.svg$/i.test(file)) {
-      const m = (await fsp.readFile(full, 'utf8')).match(/<title>([^<]+)<\/title>/i);
-      if (m) label = m[1].trim();
+    let mtime;
+    // one open file for its date and its contents (both read from the same file)
+    const fh = await fsp.open(full, 'r').catch(() => null);
+    if (!fh) continue;
+    try {
+      mtime = (await fh.stat()).mtimeMs;
+      if (/\.svg$/i.test(file)) {
+        const m = (await fh.readFile('utf8')).match(/<title>([^<]+)<\/title>/i);
+        if (m) label = m[1].trim();
+      }
+    } finally {
+      await fh.close();
     }
-    out.push({ id: path.basename(file, path.extname(file)), label, file: full, mtime: st.mtimeMs });
+    out.push({ id: path.basename(file, path.extname(file)), label, file: full, mtime });
   }
   return out;
 }
@@ -70,53 +80,6 @@ function fitTexts(svg) {
     const fitted = Math.min(size, Number(maxW) / ((cw ? Number(cw[1]) : 0.6) * chars));
     return `<text${attrs.replace(m[0], `font-size="${fitted.toFixed(1)}"`)}>${content}</text>`;
   });
-}
-
-/**
- * Uncompressed RGBA pixels, ready to be composited: encoding a full-size layer as PNG
- * only to decode it again right away costs seconds on a Raspberry Pi.
- */
-const toRaw = (img) => img.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-const rawLayer = ({ data, info }, pos = {}) => ({
-  input: data,
-  raw: { width: info.width, height: info.height, channels: info.channels },
-  ...pos,
-});
-
-/** Renders a decoration SVG at the requested width (raw RGBA). */
-async function renderDeco(file, width) {
-  const svg = await fsp.readFile(file);
-  const vb = String(svg).match(/viewBox="[\d.\s-]*?\s([\d.]+)\s+([\d.]+)"/);
-  const svgWidth = vb ? Number(vb[1]) : 240;
-  const density = Math.min(2400, Math.max(72, (72 * width) / svgWidth));
-  return toRaw(sharp(svg, { density }).resize({ width }));
-}
-
-/**
- * Theme decorations placed on the image corners: bottom-left (~26 % of the width)
- * and top-left (~22 %), slightly inset from the edge.
- */
-async function decoLayers(deco, width, height) {
-  if (!deco) return [];
-  const margin = Math.round(width * 0.012);
-  const layers = [];
-  if (deco.corner) {
-    const img = await renderDeco(deco.corner, Math.round(width * 0.26));
-    layers.push(rawLayer(img, { left: margin, top: Math.max(0, height - img.info.height - margin) }));
-  }
-  if (deco.top) {
-    layers.push(rawLayer(await renderDeco(deco.top, Math.round(width * 0.22)), { left: margin, top: margin }));
-  }
-  return layers;
-}
-
-/**
- * Layers to composite over an image of this size: the frame, then the theme decorations.
- * @param {object} opts { title: replaces {{title}}, locale: for {{date}}, deco: theme decorations (see themes.decoFiles) }
- */
-async function layers(frame, width, height, { title = '', locale, deco = null } = {}) {
-  const base = await renderFrame(frame, width, height, title, today(locale));
-  return [...opaqueParts(base), ...(await decoLayers(deco, width, height))];
 }
 
 /**
@@ -171,10 +134,18 @@ function opaqueParts({ data, info }) {
   });
 }
 
-/** Renders the frame and its decorations as a transparent PNG of the requested size. */
+/** Frame layers for an image of this size, its fully transparent middle left out. */
+async function layers(frame, width, height, { title = '', locale } = {}) {
+  return opaqueParts(await renderFrame(frame, width, height, title, today(locale)));
+}
+
+/**
+ * Renders the frame (and the theme decorations, as on the photos) as a transparent PNG.
+ * @param {object} opts { title: replaces {{title}}, locale: for {{date}}, deco: theme decorations or null }
+ */
 async function render(frame, width, height, opts) {
   return sharp({ create: { width, height, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
-    .composite(await layers(frame, width, height, opts))
+    .composite([...(await layers(frame, width, height, opts)), ...(await decorations.render(opts.deco, width, height))])
     .png()
     .toBuffer();
 }
@@ -205,54 +176,25 @@ async function preview(frame, opts = {}) {
 }
 
 /**
- * Frame and decoration layers for one image size. They are the same for every shot of an
- * event (same frame, title, date and camera resolution), so the last two sets are kept:
- * the screen size (fast version) and the full size. Only the non-transparent parts are
- * kept (see opaqueParts): a few tens of MB for a 24 Mpx camera, depending on the frame.
+ * Frame layers for one image size, for photo.process({ overlays }). They are the same for
+ * every shot of an event (same frame, title, date and camera resolution), so the last two
+ * sets are kept: the screen size (fast version) and the full size. Only the
+ * non-transparent parts are kept (see opaqueParts): a few tens of MB for a 24 Mpx camera,
+ * depending on the frame.
+ * @param {object} frame { id, mtime, file, title, locale }
  */
 const overlayCache = new Map();
-async function overlay(frame, width, height, opts) {
-  const key = [frame.id, frame.mtime, width, height, today(opts.locale), opts.title, opts.deco ? opts.deco.id : ''].join(':');
+async function overlay(frame, width, height) {
+  const key = [frame.id, frame.mtime, width, height, today(frame.locale), frame.title].join(':');
   if (!overlayCache.has(key)) {
     while (overlayCache.size >= 2) overlayCache.delete(overlayCache.keys().next().value); // free before rendering
-    overlayCache.set(key, layers(frame, width, height, opts).catch((e) => { overlayCache.delete(key); throw e; }));
+    overlayCache.set(key, layers(frame, width, height, frame).catch((e) => { overlayCache.delete(key); throw e; }));
   }
   return overlayCache.get(key);
 }
 
-/**
- * Processes the photo `src` and writes the result to `dst` (JPEG):
- *  - `retouch` (optional): async function changing the photo's RGB pixels before black &
- *    white, ({ data, info }) -> Buffer of the same size (the green screen uses it);
- *  - black & white if `bw` (photo and background: frame and decorations keep their colours);
- *  - frame (optional) with its text and the theme decorations: `frame` carries { title, locale, deco }.
- * `maxSize`: fast version for the screens, at most this many pixels on its longest side
- * (the full-size photo otherwise). `quality`: JPEG quality.
- */
-async function apply(frame, src, dst, { bw = false, retouch = null, maxSize = null, quality = 92 } = {}) {
-  // apply the EXIF orientation first, to work on the image "the right way up"
-  let img = sharp(src).rotate();
-  if (maxSize) img = img.resize({ width: maxSize, height: maxSize, fit: 'inside', withoutEnlargement: true });
-  if (retouch) {
-    // in colour first; black & white then applies to the whole result
-    const rgb = await img.removeAlpha().raw().toBuffer({ resolveWithObject: true });
-    img = sharp(await retouch(rgb), { raw: rgb.info });
-  }
-  // B&W, slightly more contrast. greyscale() gives the same result as modulate({ saturation: 0 })
-  // (within 2/255) about 7x faster; frame and decorations are composited in colour over it.
-  if (bw) img = img.greyscale().linear(1.08, -8);
-  const { data, info } = await img.raw().toBuffer({ resolveWithObject: true });
-  const over = frame ? await overlay(frame, info.width, info.height, frame) : [];
-  // plain libjpeg rather than mozjpeg: about twice as fast to encode at full size,
-  // for files around a third larger at the same quality (a few hundred KB more)
-  await sharp(data, { raw: { width: info.width, height: info.height, channels: info.channels } })
-    .composite(over)
-    .jpeg({ quality })
-    .toFile(dst);
-}
-
 module.exports = {
-  list, get, preview, apply, FRAMES_DIR,
+  list, get, preview, overlay, FRAMES_DIR,
   // internals, exported for the unit tests
   fitTexts, opaqueParts, labelFromFile, today,
 };
