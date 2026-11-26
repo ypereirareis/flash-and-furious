@@ -1,4 +1,4 @@
-/* Frames (optional feature, see server/frames/index.js): tablet overlay and admin card */
+/* Frames (module features/frames/): tablet overlay and admin card */
 
 /* Tablet: the frame laid over live view */
 .frame-overlay { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; z-index: 1; }

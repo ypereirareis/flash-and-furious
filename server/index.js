@@ -10,9 +10,7 @@ const QRCode = require('qrcode');
 const camera = require('./cameras'); // camera driver (CAMERA_DRIVER)
 const live = require('./live');
 const photo = require('./photo');
-const decorations = require('./decorations');
-const frames = require('./frames'); // optional feature (FRAMES=off), see its index.js
-const greenscreen = require('./greenscreen'); // optional feature (GREEN_SCREEN=off), see its index.js
+const features = require('./features'); // feature modules (features/ folder, FEATURES)
 const settings = require('./settings');
 const themes = require('./themes');
 const i18n = require('./i18n');
@@ -47,6 +45,14 @@ for (const dir of [CACHE_DIR, ORIGINALS_DIR]) {
     console.error(`[storage] cannot create ${dir}: ${err.message}`);
   }
 }
+// What the feature modules may use from the app (see features.js)
+features.load({
+  settings, i18n, journal, themes, express, features,
+  lang: () => lang(),
+  tr: (key, vars) => tr(key, vars),
+  translate: (m) => translate(m),
+  chownSafe, cameraUnavailable, captureAside, settingsChanged,
+});
 settings.load();
 chownSafe(settings.CONFIG_DIR);
 journal.load(settings.CONFIG_DIR);
@@ -264,7 +270,7 @@ async function captureAside(name, fn) {
 
 /**
  * A photo, from the countdown to the gallery. `edits`: what is applied to it, frozen at the
- * time of the shot: { frame, green, deco, bw } (see edit()).
+ * time of the shot: { moduleId: data } (see features.forShot).
  */
 async function runShoot(delay, useLive, edits) {
   state.busy = true;
@@ -351,7 +357,7 @@ async function runShoot(delay, useLive, edits) {
     console.log(`[shoot] ${files.join(', ') || 'no file'} in ${Date.now() - before} ms`);
 
     if (!jpeg) throw fail({ key: files.length ? 'shoot.noJpeg' : 'shoot.noFiles' }, 'no jpeg');
-    if (hasEdits(edits)) await processPhoto(files, jpeg, edits);
+    if (Object.keys(edits).length) await processPhoto(files, jpeg, edits);
     const job = processing.get(jpeg);
     const mtime = job ? job.mtime : (await fsp.stat(path.join(PHOTOS_DIR, jpeg))).mtimeMs;
     // Pre-generate the screen versions: the tablet one is awaited, the 4K one (TV)
@@ -360,7 +366,7 @@ async function runShoot(delay, useLive, edits) {
     resized(jpeg, 'tv').catch(() => {});
     const photo = toDto({ name: jpeg, mtime });
     broadcast({ type: 'photo', photo });
-    const details = editDetails(edits);
+    const details = features.journalDetails(edits);
     journal.add('success', 'photo', details.length ? 'journal.photoWith' : 'journal.photo', details.length ? { details } : {}, jpeg);
     setPhase('idle');
   } catch (err) {
@@ -376,29 +382,16 @@ async function runShoot(delay, useLive, edits) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Photo processing (green screen, black & white, frame, decorations)  */
+/* Photo processing (edits of the feature modules)                     */
 /* ------------------------------------------------------------------ */
-// The edits of a photo: { frame, green, deco, bw }. frame and green come from optional
-// features (null when off); deco: theme decorations (decorations.js).
-const hasEdits = ({ frame, green, deco, bw }) => Boolean(frame || green || deco || bw);
 /** Applies the edits of a photo to `src`, written to `dst` (JPEG). */
-function edit({ frame, green, deco, bw }, src, dst, opts = {}) {
-  const overlays = [frames.overlay(frame), decorations.overlay(deco)].filter(Boolean);
-  return photo.process(src, dst, { retouch: greenscreen.retouch(green), bw, overlays, ...opts });
+function edit(edits, src, dst, opts = {}) {
+  return photo.process(src, dst, { ...features.steps(edits), ...opts });
 }
-/** Message on the tablet while a photo is processed: { icon, message }. */
-function editStep({ frame, green, bw }) {
-  const s = frames.step(frame) || greenscreen.step(green) || (bw ? { icon: '🎞️', key: 'booth.applyingBw' } : { icon: '✨', key: 'booth.addingDeco' });
+/** Message on the tablet while a photo is edited: { icon, message }. */
+function editStep(edits) {
+  const s = features.step(edits) || { icon: '✨', key: 'booth.editing' };
   return { icon: s.icon, message: tr(s.key) };
-}
-/** Details of the journal entry of a photo, as messages ("“Beach” background", "black & white"…). */
-function editDetails({ frame, green, deco, bw }) {
-  return [
-    greenscreen.journalDetail(green),
-    frames.journalDetail(frame),
-    deco && { key: 'journal.with.deco' },
-    bw && { key: 'journal.with.bw' },
-  ].filter(Boolean);
 }
 
 // The guests only wait for the tablet version (1920 px, a fraction of a second); the
@@ -417,15 +410,15 @@ const jobFile = (name) => path.join(CACHE_DIR, `pending_${name}.json`);
  * edited version takes the photo's name in photos/.
  */
 async function processPhoto(files, jpeg, edits) {
-  const what = editDetails(edits).map(translate).join(' + ');
+  const what = features.journalDetails(edits).map(translate).join(' + ');
   setPhase('framing', editStep(edits));
   const t = Date.now();
   for (const f of files) await fsp.rename(path.join(PHOTOS_DIR, f), path.join(ORIGINALS_DIR, f));
   const original = path.join(ORIGINALS_DIR, jpeg);
-  const job = { name: jpeg, ...edits, mtime: Date.now() };
+  const job = { name: jpeg, edits, mtime: Date.now() };
   try {
     const tmp = `${screenFile(jpeg)}.tmp`;
-    await edit(job, original, tmp, { maxSize: SIZES.view, quality: QUALITY.view });
+    await edit(edits, original, tmp, { maxSize: SIZES.view, quality: QUALITY.view });
     await fsp.rename(tmp, screenFile(jpeg));
     chownSafe(screenFile(jpeg));
     await fsp.writeFile(jobFile(jpeg), JSON.stringify(job));
@@ -459,7 +452,7 @@ async function fullSize(job) {
   const tmp = path.join(PHOTOS_DIR, `.${name}.tmp`); // hidden: not listed while being written
   const t = Date.now();
   try {
-    await edit(job, original, tmp);
+    await edit(job.edits || {}, original, tmp);
     await fsp.rename(tmp, target);
     console.log(`[photo] ${name}: full size in ${Date.now() - t} ms`);
   } catch (err) {
@@ -614,10 +607,15 @@ app.use(
     },
   })
 );
-app.use(express.static(path.join(__dirname, '..', 'public'), { extensions: ['html'], cacheControl: false, etag: false, lastModified: false }));
+const STATIC_OPTIONS = { extensions: ['html'], cacheControl: false, etag: false, lastModified: false };
+// Texts for the browser: the app's and those of the feature modules
+app.get('/locales/:lang.json', (req, res) => (i18n.isValid(req.params.lang) ? res.json(i18n.dict(req.params.lang)) : res.sendStatus(404)));
+app.use(express.static(path.join(__dirname, '..', 'public'), STATIC_OPTIONS));
 // No direct access to the original files: photos are retrieved on the host (photos/ folder).
 
 app.get('/api/config', (_req, res) => res.json({ defaultDelay: DEFAULT_DELAY }));
+// Active feature modules and their files for the screens (see public/features.js)
+app.get('/api/features', (_req, res) => res.json(features.ui()));
 
 // Immediate answer with the last known state (the camera is polled in the background)
 app.get('/api/status', (req, res) => {
@@ -636,12 +634,8 @@ app.post('/api/shoot', async (req, res) => {
   // Everything is decided by the admin settings (/admin), not by the tablet
   const delay = DEFAULT_DELAY;
   const conf = settings.get();
-  const edits = {
-    frame: await frames.forShot(conf), // text and date frozen at the time of the photo
-    green: await greenscreen.forShot(conf),
-    deco: decorations.forPhoto(conf),
-    bw: Boolean(req.body && req.body.bw), // chosen by the guests on the tablet
-  };
+  // edits of the feature modules, frozen at the time of the photo (some chosen on the tablet)
+  const edits = await features.forShot(conf, req.body || {});
   runShoot(delay, conf.live, edits); // asynchronous: progress is sent through /api/events
   res.status(202).json({ ok: true, delay });
 });
@@ -649,11 +643,9 @@ app.post('/api/shoot', async (req, res) => {
 /* ---------- Settings (admin) ---------- */
 async function settingsDto() {
   const conf = settings.get();
-  return {
-    ...conf,
-    ...(await frames.settingsDto(conf)),
-    ...(await greenscreen.settingsDto(conf)),
-  };
+  const dto = { ...conf, ...(await features.settingsDto(conf)) };
+  for (const k of features.inactiveKeys()) delete dto[k]; // settings of the modules switched off
+  return dto;
 }
 /** Settings changed: sent to every screen, and returned (for /admin). */
 async function settingsChanged() {
@@ -669,7 +661,6 @@ app.put('/api/settings', async (req, res) => {
   const patch = {};
   if ('mirror' in b) patch.mirror = Boolean(b.mirror);
   if ('live' in b) patch.live = Boolean(b.live);
-  if ('photoDeco' in b) patch.photoDeco = Boolean(b.photoDeco);
   if ('theme' in b) {
     if (!themes.isValid(b.theme)) return res.status(400).json({ error: tr('settings.unknownTheme') });
     patch.theme = b.theme;
@@ -678,12 +669,10 @@ app.put('/api/settings', async (req, res) => {
     if (!i18n.isValid(b.lang)) return res.status(400).json({ error: tr('settings.unknownLang') });
     patch.lang = b.lang;
   }
-  // optional features: their own settings
-  for (const feature of [frames, greenscreen]) {
-    const r = await feature.settingsPatch(b);
-    if (r.error) return res.status(400).json({ error: r.error });
-    Object.assign(patch, r.patch);
-  }
+  // the feature modules' own settings
+  const fromModules = await features.settingsPatch(b);
+  if (fromModules.error) return res.status(400).json({ error: fromModules.error });
+  Object.assign(patch, fromModules.patch);
   const old = settings.get();
   await settings.update(patch, chownSafe);
   await journalSettings(old, settings.get());
@@ -694,13 +683,11 @@ app.put('/api/settings', async (req, res) => {
 /** Settings changed in /admin, one journal entry per change. */
 async function journalSettings(old, now) {
   const add = (key, vars) => journal.add('info', 'settings', key, vars);
-  await frames.journalSettings(old, now, add);
   if (now.theme !== old.theme) add('journal.settingTheme', { value: { key: `themes.${now.theme}` } });
-  if (now.photoDeco !== old.photoDeco) add(now.photoDeco ? 'journal.settingDecoOn' : 'journal.settingDecoOff');
   if (now.live !== old.live) add(now.live ? 'journal.settingLiveOn' : 'journal.settingLiveOff');
   if (now.mirror !== old.mirror) add(now.mirror ? 'journal.settingMirrorOn' : 'journal.settingMirrorOff');
   if (now.lang !== old.lang) add('journal.settingLang', { value: (i18n.list().find((l) => l.id === now.lang) || {}).label });
-  await greenscreen.journalSettings(old, now, add);
+  await features.journalSettings(old, now, add);
 }
 
 // Camera driver: capabilities and help texts in the UI language
@@ -769,11 +756,8 @@ app.get('/api/journal', (req, res) => {
   res.json({ entries: entries.map(journalDto), more });
 });
 
-/* ---------- Frames (optional feature: server/frames/) ---------- */
-if (frames.ENABLED) app.use(frames.router());
-
-/* ---------- Green screen (optional feature: server/greenscreen/) ---------- */
-if (greenscreen.ENABLED) app.use(greenscreen.router({ cameraUnavailable, captureAside, settingsChanged, translate, chownSafe }));
+/* ---------- Feature modules: their routes and screen files ---------- */
+features.mount(app, express, STATIC_OPTIONS);
 
 app.get('/api/live.mjpeg', (req, res) => live.addViewer(req, res));
 

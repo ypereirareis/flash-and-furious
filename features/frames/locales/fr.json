@@ -1,0 +1,31 @@
+{
+  "frames": {
+    "names": {
+      "01-polaroid": "Polaroid",
+      "02-party": "Fête",
+      "03-cinema": "Cinéma",
+      "04-elegant": "Élégant"
+    },
+    "booth": {
+      "adding": "Ajout du cadre…"
+    },
+    "admin": {
+      "title": "Cadre appliqué aux photos",
+      "text": "Texte affiché sur les cadres",
+      "placeholder": "Ex. Mariage de Léa & Sam",
+      "textHint": "Le même texte pour tous les cadres. La date du jour s'ajoute toute seule sur les cadres qui l'affichent.",
+      "hint": "Ajoutez vos propres cadres (PNG transparent ou SVG, format 3:2) dans le dossier <code>frames/</code> du projet.",
+      "none": "Sans cadre",
+      "photoOnly": "Photo seule"
+    },
+    "settings": {
+      "unknownFrame": "Cadre inconnu."
+    },
+    "journal": {
+      "with": "cadre « {frame} »",
+      "settingFrame": "Cadre : {value}",
+      "settingNoFrame": "Cadre : aucun",
+      "settingTitle": "Texte du cadre : « {value} »"
+    }
+  }
+}

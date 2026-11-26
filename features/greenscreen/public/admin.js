@@ -1,16 +1,14 @@
 'use strict';
 
 /*
- * Green screen card of the admin page (optional feature, see server/greenscreen/index.js).
- * Loaded before admin.js and registered in ADMIN_PARTS: admin.js calls load() at start and
- * render(settings) on every settings change, and provides save(), tile(), toast() and
- * applySettings(). The card stays hidden when the server has the feature off.
+ * Green screen card of the admin page (module features/greenscreen/).
+ * Registered in ADMIN_PARTS: admin.js calls load() at start and render(settings) on every
+ * settings change, and provides save(), tile(), toast() and applySettings().
  */
 (function greenScreenCard() {
   const card = document.createElement('section');
   card.className = 'card wide';
   card.id = 'greenCard';
-  card.hidden = true;
   // static markup, texts filled by applyI18n()
   card.innerHTML = `
     <h2 data-i18n="greenscreen.admin.title"></h2>
@@ -48,12 +46,10 @@
 
   let current = {};
   let backgrounds = [];
-  const enabled = () => 'greenScreen' in current; // the server sends no green screen settings when it is off
 
   function render(s) {
     current = s;
-    card.hidden = !enabled();
-    if (card.hidden) return;
+    if (!('greenScreen' in s)) return; // settings not loaded yet
     el('greenToggle').checked = Boolean(s.greenScreen);
     if (document.activeElement !== el('greenTolerance')) el('greenTolerance').value = s.greenTolerance ?? 50;
     el('greenToleranceValue').textContent = el('greenTolerance').value;

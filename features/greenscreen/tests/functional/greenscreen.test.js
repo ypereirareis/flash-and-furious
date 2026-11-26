@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
-const { REAL, photos, startServer, shoot, waitFullSize, media, colourAt, isGrey, WORK } = require('./helpers');
+const { REAL, photos, startServer, shoot, waitFullSize, media, colourAt, isGrey, WORK } = require('../../../../tests/functional/helpers');
 
 // the real camera does not see a green cloth: these tests need the fake one
 const skip = REAL && 'needs the fake camera (green cloth photo)';
@@ -120,10 +120,10 @@ test('settings: checked, and written in the journal', { skip }, async () => {
   assert.ok(!near(await colourAt(file, 0.05, 0.05), MAGENTA), 'cloth kept');
 });
 
-test('GREEN_SCREEN=off: no routes, no settings for /admin, photos never changed', { skip }, async () => {
-  const off = await startServer('greenscreen-off', { env: { BACKGROUNDS_DIR: bgDir, GREEN_SCREEN: 'off' } });
+test('switched off (not in FEATURES): no routes, no settings for /admin, photos never changed', { skip }, async () => {
+  const off = await startServer('greenscreen-off', { env: { BACKGROUNDS_DIR: bgDir, FEATURES: 'bw,decorations,frames' } });
   try {
-    for (const url of ['/api/backgrounds', '/api/greenscreen/preview.jpg']) assert.equal((await off.api(url)).status, 404, url);
+    for (const url of ['/api/backgrounds', '/api/greenscreen/preview.jpg', '/features/greenscreen/admin.js']) assert.equal((await off.api(url)).status, 404, url);
     assert.equal((await off.api('/api/greenscreen/calibrate', { method: 'POST' })).status, 404);
     const s = await off.settings({ greenScreen: true, background: 'nope' }); // ignored, not refused
     for (const k of ['greenScreen', 'background', 'greenTolerance', 'greenKey', 'greenPreview']) assert.ok(!(k in s), `no ${k}`);

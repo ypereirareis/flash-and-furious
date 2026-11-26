@@ -9,8 +9,8 @@ let focusWanted = null;
 let busy = false;
 // Capabilities and texts provided by the camera driver (server/cameras/)
 let cam = { capabilities: { liveView: true, remoteAutofocus: true, focusMode: false }, texts: {} };
-// Cards of optional features, in their own files (e.g. admin-green.js): { load(), render(settings) }
-const parts = window.ADMIN_PARTS || [];
+// What the feature modules add to this page (see features.js): { load(), render(settings) }
+const parts = window.ADMIN_PARTS;
 
 async function loadCameraInfo() {
   try { cam = await fetch('/api/camera').then((r) => r.json()); } catch (_) { /* defaults */ }
@@ -57,7 +57,6 @@ function applySettings(s) {
   settings = s;
   $('liveToggle').checked = Boolean(s.live);
   $('mirrorToggle').checked = Boolean(s.mirror);
-  $('decoToggle').checked = Boolean(s.photoDeco);
   // don't overwrite text being typed
   if (s.theme) document.documentElement.dataset.theme = s.theme;
   renderThemes();
@@ -69,7 +68,6 @@ async function loadSettings() {
 }
 $('liveToggle').addEventListener('change', (e) => save({ live: e.target.checked }));
 $('mirrorToggle').addEventListener('change', (e) => save({ mirror: e.target.checked }));
-$('decoToggle').addEventListener('change', (e) => save({ photoDeco: e.target.checked }));
 
 /* ---------- Language ---------- */
 let languages = [];
@@ -129,14 +127,9 @@ function renderThemes() {
     return b;
   });
   $('themeGrid').replaceChildren(...tiles);
-  // explanation depending on the chosen theme
-  const cur = themeList.find((th) => th.id === settings.theme);
-  let hint = t('admin.decoHint');
-  if (cur && !cur.hasDeco) hint += t('admin.decoNone', { theme: cur.label });
-  $('decoHint').textContent = hint;
 }
 
-/* ---------- Picture tiles (cards of the optional features: frames, backgrounds) ---------- */
+/* ---------- Picture tiles (cards of the feature modules: frames, backgrounds) ---------- */
 /** A tile to pick: its picture (or `placeholder` written on an empty one) and its name. */
 function tile(label, previewUrl, selected, onPick, placeholder = '') {
   const b = document.createElement('button');
@@ -337,6 +330,7 @@ function toast(msg, kind) {
 
 (async function init() {
   const initial = await loadSettingsLang(); // language first, so every text is translated
+  await loadFeatures('admin');
   refreshStatus();
   loadNetwork();
   await Promise.all([loadCameraInfo(), loadThemes(), loadLanguages(), ...parts.map((p) => p.load())]);

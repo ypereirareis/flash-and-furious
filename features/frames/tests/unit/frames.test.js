@@ -10,19 +10,17 @@ const sharp = require('sharp');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'frames-'));
 process.env.CONFIG_DIR = tmp;
 process.env.FRAME_TITLE = 'Our party';
-const settings = require('../../server/settings');
-const feature = require('../../server/frames');
-const frames = require('../../server/frames/render');
-const photo = require('../../server/photo');
-const decorations = require('../../server/decorations');
+const { def, features, edit, settings } = require('../../../../tests/unit/modules');
+const { render: frames, MAX_TITLE } = require('../..');
 test.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
-const opts = { title: 'Coucou Marjo !!!', locale: 'fr-FR', deco: null };
-const BIRTHDAY = { id: 'birthday', corner: path.join(__dirname, '../../public/deco/birthday-corner.svg') };
+const opts = { title: 'Coucou Marjo !!!', locale: 'fr-FR' };
+const BIRTHDAY = { id: 'birthday', corner: path.join(__dirname, '../../../../public/deco/birthday-corner.svg') };
 
-/** A photo edited with this frame (and its decorations), as the server does. */
+/** A photo edited with this frame (and other modules' edits: { bw, decorations }), as the server does. */
 function apply(frame, src, dst, options = {}) {
-  const overlays = [feature.overlay(frame), decorations.overlay(frame && frame.deco)].filter(Boolean);
-  return photo.process(src, dst, { ...options, overlays });
+  const { bw, decorations, ...rest } = options;
+  const edits = { frames: frame, ...(bw ? { bw } : {}), ...(decorations ? { decorations } : {}) };
+  return edit(edits, src, dst, rest);
 }
 
 /** Colourful 1200 × 800 test photo (left half red, right half blue), with an EXIF orientation. */
@@ -137,9 +135,9 @@ test('apply: screen version limited to maxSize, never enlarged', async () => {
 
 test('apply: same output on every call (cached frame layers)', async () => {
   const src = await testPhoto('cache.jpg');
-  const frame = { ...(await frames.get('04-elegant')), ...opts, deco: BIRTHDAY };
-  await apply(frame, src, path.join(tmp, 'c1.jpg'));
-  await apply(frame, src, path.join(tmp, 'c2.jpg'));
+  const frame = { ...(await frames.get('04-elegant')), ...opts };
+  await apply(frame, src, path.join(tmp, 'c1.jpg'), { decorations: BIRTHDAY });
+  await apply(frame, src, path.join(tmp, 'c2.jpg'), { decorations: BIRTHDAY });
   assert.ok(fs.readFileSync(path.join(tmp, 'c1.jpg')).equals(fs.readFileSync(path.join(tmp, 'c2.jpg'))));
 });
 
@@ -154,17 +152,17 @@ test('settings: frame and title added to the app settings, cleaned up', async ()
   assert.deepEqual([s.frame, s.frameTitle], [null, 'Our party']);
   s = await settings.update({ frame: '../../etc/passwd', frameTitle: `  Happy   birthday\n ${'x'.repeat(100)}` });
   assert.equal(s.frame, null);
-  assert.equal(s.frameTitle.length, feature.MAX_TITLE);
+  assert.equal(s.frameTitle.length, MAX_TITLE);
   assert.match(s.frameTitle, /^Happy birthday x+$/);
 });
 
 test('hooks: frame of a shot, checked settings, journal entries', async () => {
-  await settings.update({ frame: null, frameTitle: 'Party' });
-  assert.equal(await feature.forShot(), null);
-  assert.equal(feature.overlay(null), null);
-  assert.equal(feature.step(null), null);
+  const feature = def('frames');
+  await settings.update({ frame: null, frameTitle: 'Party', photoDeco: false });
+  assert.equal(await feature.forShot(settings.get()), null);
+  assert.deepEqual(await features.forShot(settings.get(), {}), {}, 'nothing to do for a photo');
   await settings.update({ frame: '02-party' });
-  const frame = await feature.forShot();
+  const frame = await feature.forShot(settings.get());
   assert.deepEqual([frame.id, frame.label, frame.title, frame.locale], ['02-party', 'Party', 'Party', 'en-GB']);
   assert.deepEqual(feature.journalDetail(frame), { key: 'frames.journal.with', vars: { frame: 'Party' } });
   assert.deepEqual(await feature.settingsPatch({ frame: 'nope' }), { error: 'Unknown frame.' });

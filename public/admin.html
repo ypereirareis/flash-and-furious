@@ -11,8 +11,6 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="themes.css" />
   <link rel="stylesheet" href="admin.css" />
-  <link rel="stylesheet" href="greenscreen/admin.css" /><!-- green screen (optional) -->
-  <link rel="stylesheet" href="frames/frames.css" /><!-- frames (optional) -->
 </head>
 <body class="admin">
   <header class="topbar">
@@ -84,13 +82,6 @@
       <h2 data-i18n="admin.theme">Colour theme</h2>
       <p class="hint" data-i18n="admin.themeHint"></p>
       <div id="themeGrid" class="theme-grid"></div>
-      <label class="switch-row deco-row">
-        <span>
-          <strong data-i18n="admin.deco">Theme decorations on photos</strong>
-          <small id="decoHint"></small>
-        </span>
-        <input type="checkbox" id="decoToggle" class="switch" />
-      </label>
     </section>
 
   </main>
@@ -111,9 +102,7 @@
 
   <div id="toast" class="toast" hidden></div>
   <script src="i18n.js"></script>
-  <!-- optional features: their cards, in this order after the others -->
-  <script src="greenscreen/admin.js"></script><!-- green screen (optional) -->
-  <script src="frames/admin.js"></script><!-- frames (optional) -->
+  <script src="features.js"></script>
   <script src="admin.js"></script>
 </body>
 </html>

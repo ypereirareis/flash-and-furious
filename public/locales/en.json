@@ -16,7 +16,6 @@
   },
   "booth": {
     "fullscreen": "Full screen",
-    "bw": "Black & white",
     "shoot": "Take a photo",
     "lastPhoto": "Last photo",
     "lastPhotoAt": "Last photo · {time}",
@@ -27,15 +26,12 @@
     "previous": "Previous",
     "next": "Next",
     "tapToShoot": "Tap the round button to take a photo",
-    "bwOn": "Black & white photos",
-    "bwOff": "Colour photos",
     "cannotStart": "Could not start the photo",
     "smile": "Smile!",
     "preparingLive": "Starting live view…",
     "focusing": "Focusing…",
-    "applyingBw": "Converting to black & white…",
     "retrying": "Focusing is tricky, trying again…",
-    "addingDeco": "Adding the decorations…"
+    "editing": "Editing the photo…"
   },
   "slideshow": {
     "newPhoto": "New photo!",
@@ -72,9 +68,6 @@
     "otherNetworks": "Other networks: {list}",
     "theme": "Colour theme",
     "themeHint": "Tablet colours (background, preview area…). Changes apply to the tablet immediately.",
-    "deco": "Theme decorations on photos",
-    "decoHint": "Also adds the theme drawings (pumpkins, fir trees, cake…) to the photos, with or without a frame.",
-    "decoNone": " The “{theme}” theme has no decorations: no effect.",
     "save": "Save"
   },
   "shoot": {
@@ -162,10 +155,6 @@
     "stoppingWait": "Photobooth stopping: waiting for {count} photo(s) being processed",
     "photo": "Photo taken",
     "photoWith": "Photo taken: {details}",
-    "with": {
-      "bw": "black & white",
-      "deco": "theme decorations"
-    },
     "shootFailed": "No photo: {reason}",
     "retouchFailed": "The frame could not be applied: photo saved as is",
     "resumed": "{count} photo(s) interrupted by a stop: processing resumed",
@@ -178,86 +167,11 @@
     "storageOk": "Photo storage available again",
     "rateLimited": "Too many requests from the device {ip}: refused for a minute",
     "settingTheme": "Theme: {value}",
-    "settingDecoOn": "Theme decorations on photos: on",
-    "settingDecoOff": "Theme decorations on photos: off",
     "settingLiveOn": "Live view during the countdown: on",
     "settingLiveOff": "Live view during the countdown: off",
     "settingMirrorOn": "Mirror effect: on",
     "settingMirrorOff": "Mirror effect: off",
     "settingLang": "Language: {value}",
     "skipped": "{count} journal entries skipped (too many in a minute)"
-  },
-  "frames": {
-    "names": {
-      "01-polaroid": "Polaroid",
-      "02-party": "Party",
-      "03-cinema": "Cinema",
-      "04-elegant": "Elegant"
-    },
-    "booth": {
-      "adding": "Adding the frame…"
-    },
-    "admin": {
-      "title": "Frame applied to photos",
-      "text": "Text shown on frames",
-      "placeholder": "e.g. Lea & Sam's wedding",
-      "textHint": "The same text for every frame. Today's date is added automatically on frames that show it.",
-      "hint": "Add your own frames (transparent PNG or SVG, 3:2 ratio) to the project's <code>frames/</code> folder.",
-      "none": "No frame",
-      "photoOnly": "Photo only"
-    },
-    "settings": {
-      "unknownFrame": "Unknown frame."
-    },
-    "journal": {
-      "with": "“{frame}” frame",
-      "settingFrame": "Frame: {value}",
-      "settingNoFrame": "Frame: none",
-      "settingTitle": "Frame text: “{value}”"
-    }
-  },
-  "greenscreen": {
-    "noPhoto": "The camera did not take the calibration photo. Check the focus (aim at a person in front of the cloth, or switch to manual focus) and try again.",
-    "notGreen": "No green cloth found: only {coverage}% of the photo is green. The cloth must fill a good part of the picture and be well lit.",
-    "failed": "The calibration failed. Try again.",
-    "booth": {
-      "applyingBackground": "Adding the background…"
-    },
-    "admin": {
-      "title": "Green screen",
-      "hint": "Guests pose in front of a green cloth: the green is replaced with the chosen background. Light the cloth evenly, keep people 1 to 2 m in front of it, and avoid green clothes.",
-      "toggle": "Replace the green cloth",
-      "toggleHint": "Applied to every photo, with or without a frame.",
-      "calibrate": "Calibrate",
-      "calibrating": "Taking the calibration photo…",
-      "calibrateHint": "Takes a photo (not added to the gallery) to measure the exact green of your cloth under your lights. Someone may stand in front of it. Calibrate again if the lights change.",
-      "calibrated": "Calibrated on {date}.",
-      "notCalibrated": "Not calibrated yet: default settings for a typical green cloth.",
-      "tolerance": "Tolerance",
-      "toleranceHint": "Raise it if green remains around people; lower it if parts of people disappear.",
-      "previewAlt": "Calibration photo with the background",
-      "backgrounds": "Background",
-      "backgroundsHint": "Add your own backgrounds (JPEG, PNG or SVG, 3:2 ratio) to the project's <code>backgrounds/</code> folder.",
-      "noBackground": "No background in the backgrounds/ folder."
-    },
-    "settings": {
-      "unknownBackground": "Unknown background.",
-      "badTolerance": "The tolerance must be between 0 and 100."
-    },
-    "journal": {
-      "with": "“{background}” background",
-      "settingOn": "Green screen: on",
-      "settingOff": "Green screen: off",
-      "settingBackground": "Green screen background: {value}",
-      "settingTolerance": "Green screen tolerance: {value}",
-      "calibrated": "Green screen calibrated ({coverage}% of the photo is green cloth)",
-      "calibrationFailed": "Green screen calibration failed: {reason}"
-    },
-    "backgrounds": {
-      "01-beach": "Beach",
-      "02-space": "Space",
-      "03-party-lights": "Party lights",
-      "04-city-night": "City at night"
-    }
   }
 }

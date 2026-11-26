@@ -1,0 +1,11 @@
+{
+  "bw": {
+    "button": "Noir & blanc",
+    "on": "Photos en noir et blanc",
+    "off": "Photos en couleur",
+    "applying": "Passage en noir et blanc…",
+    "journal": {
+      "with": "noir et blanc"
+    }
+  }
+}

@@ -1,17 +1,15 @@
 'use strict';
 
 /*
- * Frames card of the admin page (optional feature, see server/frames/index.js): the text of
- * the frames, and the frame applied to the photos.
- * Loaded before admin.js and registered in ADMIN_PARTS: admin.js calls load() at start and
- * render(settings) on every settings change, and provides save() and tile(). The card stays
- * hidden when the server has the feature off.
+ * Frames card of the admin page (module features/frames/): the text of the frames, and the
+ * frame applied to the photos.
+ * Registered in ADMIN_PARTS: admin.js calls load() at start and render(settings) on every
+ * settings change, and provides save() and tile().
  */
 (function framesCard() {
   const card = document.createElement('section');
   card.className = 'card wide';
   card.id = 'framesCard';
-  card.hidden = true;
   // static markup, texts filled by applyI18n()
   card.innerHTML = `
     <h2 data-i18n="frames.admin.title"></h2>
@@ -30,10 +28,7 @@
 
   let current = {};
   let frames = [];
-  let shownWith = null; // settings the frame previews were made with
-  const enabled = () => 'frame' in current; // the server sends no frame settings when it is off
-  // the previews show the text, the date language and the theme decorations
-  const previewSettings = (s) => [s.frameTitle, s.lang, s.theme, s.photoDeco].join('|');
+  let shownWith = null; // version of the frame previews shown (text, date language, decorations...)
 
   async function loadFrames() {
     try {
@@ -46,9 +41,8 @@
 
   function render(s) {
     current = s;
-    card.hidden = !enabled();
-    if (card.hidden) return;
-    const sig = previewSettings(s);
+    if (!('frame' in s)) return; // settings not loaded yet
+    const sig = s.framesVersion;
     if (shownWith === null) shownWith = sig; // first settings: same as the list just loaded
     else if (shownWith !== sig) {
       shownWith = sig;

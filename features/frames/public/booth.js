@@ -2,9 +2,9 @@
 
 /*
  * Frame laid over live view (and the empty screen) on the tablet, so people can place
- * themselves inside it (optional feature, see server/frames/index.js).
- * Loaded before app.js and registered in BOOTH_PARTS: app.js calls
- * render({ settings, stageFree }) whenever the settings or the screen change.
+ * themselves inside it (module features/frames/).
+ * Registered in BOOTH_PARTS: app.js calls render({ settings, stageFree }) whenever the
+ * settings or the screen change.
  */
 (function frameOverlay() {
   const img = Object.assign(document.createElement('img'), { className: 'frame-overlay', alt: '', hidden: true });

@@ -16,8 +16,15 @@ const root = path.join(__dirname, '..');
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 const localesDir = path.join(root, 'public', 'locales');
 const langs = fs.readdirSync(localesDir).filter((f) => f.endsWith('.json')).map((f) => path.basename(f, '.json'));
-const dicts = Object.fromEntries(langs.map((l) => [l, JSON.parse(read(`public/locales/${l}.json`))]));
+// feature modules (features/<id>/): their texts are merged into the app's, as the server does
+const modules = fs.readdirSync(path.join(root, 'features'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
+const moduleTexts = (l) => Object.assign({}, ...modules.map((m) => {
+  const f = path.join(root, 'features', m, 'locales', `${l}.json`);
+  return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : {};
+}));
+const dicts = Object.fromEntries(langs.map((l) => [l, { ...JSON.parse(read(`public/locales/${l}.json`)), ...moduleTexts(l) }]));
 const errors = [];
+const listJs = (dir) => (fs.existsSync(path.join(root, dir)) ? fs.readdirSync(path.join(root, dir)).filter((f) => f.endsWith('.js')).map((f) => path.join(dir, f)) : []);
 
 /** Flattens { a: { b: 'x' } } into { 'a.b': 'x' } (arrays are leaves). */
 function flatten(obj, prefix = '', out = {}) {
@@ -45,14 +52,16 @@ for (const lang of langs.filter((l) => l !== 'en')) {
 // 2. Keys used in the code
 const files = [
   ...['public/app.js', 'public/admin.js', 'public/index.html', 'public/admin.html', 'public/slideshow.html'],
-  ...['public/frames/admin.js', 'public/frames/booth.js', 'public/greenscreen/admin.js'],
-  ...['server/index.js', 'server/journal.js', 'server/frames/index.js', 'server/greenscreen/index.js'],
-];
+  'public/features.js',
+  ...['server/index.js', 'server/journal.js'],
+  // feature modules: their server side (index.js) and their screen files
+  ...modules.flatMap((m) => [path.join('features', m, 'index.js'), ...listJs(path.join('features', m, 'public'))]),
+].filter((f) => fs.existsSync(path.join(root, f)));
 const used = new Set();
 const add = (re, text, map = (m) => m[1]) => { for (const m of text.matchAll(re)) used.add(map(m)); };
 for (const f of files) {
   const s = read(f);
-  add(/'((?:app|status|booth|slideshow|admin|shoot|settings|storage|journal|frames|greenscreen)\.\w+(?:\.\w+)*)'/g, s);
+  add(new RegExp(`'((?:${['app', 'status', 'booth', 'slideshow', 'admin', 'shoot', 'settings', 'storage', 'journal', ...modules].join('|')})\\.\\w+(?:\\.\\w+)*)'`, 'g'), s);
   add(/data-i18n(?:-html)?="([\w.]+)"/g, s);
   for (const m of s.matchAll(/data-i18n-attr="([^"]+)"/g)) m[1].split(';').forEach((p) => used.add(p.split(':')[1].trim()));
 }
@@ -62,6 +71,7 @@ add(/camera: '(\w+)'/g, index, (m) => `camera.${m[1]}`);
 add(/'(\w+)'/g, (index.match(/CAMERA_TEXTS = \[([^\]]*)\]/) || ['', ''])[1], (m) => `camera.${m[1]}`);
 add(/return '(\w+)';/g, read('server/cameras/gphoto2.js'), (m) => `camera.${m[1]}`);
 add(/'(live[A-Z]\w+)'/g, read('server/live.js'), (m) => `camera.${m[1]}`);
+for (const k of used) if (/\.(js|css|json|svg|png|jpe?g)$/.test(k)) used.delete(k); // file names, not texts
 for (const k of used) if (!(k in en)) errors.push(`key used in the code but missing from en.json: "${k}"`);
 
 // 3. Driver-specific overrides must match a generic camera text

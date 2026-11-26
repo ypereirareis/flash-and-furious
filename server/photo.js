@@ -1,9 +1,8 @@
 'use strict';
 
 /**
- * Processing of a photo: the right way up, optional retouch (green screen), black & white,
- * layers composited over it (frame, theme decorations), JPEG.
- * Optional features plug in through `retouch` and `overlays`: this file knows none of them.
+ * Processing of a photo: the right way up, the edits of the feature modules, JPEG.
+ * This file knows none of the modules.
  */
 
 const sharp = require('sharp');
@@ -20,34 +19,34 @@ const rawLayer = ({ data, info }, pos = {}) => ({
 });
 
 /**
- * Processes the photo `src` and writes the result to `dst` (JPEG):
- *  - `retouch` (optional): async function changing the photo's RGB pixels before black &
- *    white, ({ data, info }) -> Buffer of the same size (the green screen uses it);
- *  - black & white if `bw` (the photo and its retouch; layers keep their colours);
- *  - `overlays`: async functions (width, height) -> sharp composite layers, laid over the
- *    photo in this order (frame, theme decorations).
+ * Processes the photo `src` and writes the result to `dst` (JPEG). The edits come from the
+ * feature modules (see features.js), in three stages:
+ *  - `pixels`: async functions changing the RGB pixels, ({ data, info }) -> Buffer of the
+ *    same size (green screen);
+ *  - `image`: functions adding sharp operations, (img) -> img (black & white);
+ *  - `layers`: async functions (width, height) -> sharp composite layers, laid over the
+ *    photo in this order, in their own colours (frame, theme decorations).
  * `maxSize`: fast version for the screens, at most this many pixels on its longest side
  * (the full-size photo otherwise). `quality`: JPEG quality.
+ * The photo is decoded once, composited once and encoded once, whatever the edits.
  */
-async function process(src, dst, { retouch = null, bw = false, overlays = [], maxSize = null, quality = 92 } = {}) {
+async function process(src, dst, { pixels = [], image = [], layers = [], maxSize = null, quality = 92 } = {}) {
   // apply the EXIF orientation first, to work on the image "the right way up"
   let img = sharp(src).rotate();
   if (maxSize) img = img.resize({ width: maxSize, height: maxSize, fit: 'inside', withoutEnlargement: true });
-  if (retouch) {
-    // in colour first; black & white then applies to the whole result
+  if (pixels.length) {
     const rgb = await img.removeAlpha().raw().toBuffer({ resolveWithObject: true });
-    img = sharp(await retouch(rgb), { raw: rgb.info });
+    for (const step of pixels) rgb.data = await step(rgb);
+    img = sharp(rgb.data, { raw: rgb.info });
   }
-  // B&W, slightly more contrast. greyscale() gives the same result as modulate({ saturation: 0 })
-  // (within 2/255) about 7x faster; layers are composited in colour over it.
-  if (bw) img = img.greyscale().linear(1.08, -8);
+  for (const step of image) img = step(img);
   const { data, info } = await img.raw().toBuffer({ resolveWithObject: true });
-  const layers = [];
-  for (const overlay of overlays) layers.push(...(await overlay(info.width, info.height)));
+  const over = [];
+  for (const step of layers) over.push(...(await step(info.width, info.height)));
   // plain libjpeg rather than mozjpeg: about twice as fast to encode at full size,
   // for files around a third larger at the same quality (a few hundred KB more)
   await sharp(data, { raw: { width: info.width, height: info.height, channels: info.channels } })
-    .composite(layers)
+    .composite(over)
     .jpeg({ quality })
     .toFile(dst);
 }

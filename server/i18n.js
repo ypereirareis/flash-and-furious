@@ -8,11 +8,13 @@
 
 const path = require('path');
 const fs = require('fs');
+const features = require('./features');
 
 const LOCALES_DIR = path.join(__dirname, '..', 'public', 'locales');
 const FALLBACK = 'en';
 const LANGS = fs.readdirSync(LOCALES_DIR).filter((f) => f.endsWith('.json')).map((f) => path.basename(f, '.json')).sort();
-const dicts = Object.fromEntries(LANGS.map((l) => [l, JSON.parse(fs.readFileSync(path.join(LOCALES_DIR, `${l}.json`), 'utf8'))]));
+// the app's texts, and those of the feature modules (features/<id>/locales/)
+const dicts = Object.fromEntries(LANGS.map((l) => [l, { ...JSON.parse(fs.readFileSync(path.join(LOCALES_DIR, `${l}.json`), 'utf8')), ...features.locales(l) }]));
 
 const lookup = (dict, key) => key.split('.').reduce((o, k) => (o && typeof o === 'object' ? o[k] : undefined), dict);
 const interpolate = (s, vars) => (typeof s === 'string' ? s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m)) : s);
@@ -33,4 +35,7 @@ const isValid = (lang) => LANGS.includes(lang);
 /** Languages for the admin selector: [{ id, label }] */
 const list = () => LANGS.map((id) => ({ id, label: dicts[id].language || id }));
 
-module.exports = { t, has, isValid, list, LANGS, FALLBACK };
+/** All the texts of a language (for the browser). */
+const dict = (lang) => dicts[lang];
+
+module.exports = { t, has, isValid, list, dict, LANGS, FALLBACK };

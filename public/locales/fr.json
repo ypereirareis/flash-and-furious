@@ -16,7 +16,6 @@
   },
   "booth": {
     "fullscreen": "Plein écran",
-    "bw": "Noir & blanc",
     "shoot": "Prendre une photo",
     "lastPhoto": "Dernière photo",
     "lastPhotoAt": "Dernière photo · {time}",
@@ -27,15 +26,12 @@
     "previous": "Précédente",
     "next": "Suivante",
     "tapToShoot": "Touchez le bouton rond pour prendre une photo",
-    "bwOn": "Photos en noir et blanc",
-    "bwOff": "Photos en couleur",
     "cannotStart": "Impossible de lancer la photo",
     "smile": "Souriez !",
     "preparingLive": "Préparation du direct…",
     "focusing": "Mise au point…",
-    "applyingBw": "Passage en noir et blanc…",
     "retrying": "Mise au point difficile, on réessaie…",
-    "addingDeco": "Ajout des décors…"
+    "editing": "Retouche de la photo…"
   },
   "slideshow": {
     "newPhoto": "Nouvelle photo !",
@@ -72,9 +68,6 @@
     "otherNetworks": "Autres réseaux : {list}",
     "theme": "Thème de couleur",
     "themeHint": "Couleurs de la tablette (fond, zone d'aperçu…). Le changement est immédiat sur la tablette.",
-    "deco": "Décors du thème sur les photos",
-    "decoHint": "Pose aussi les dessins du thème (citrouilles, sapins, gâteau…) sur les photos, avec ou sans cadre.",
-    "decoNone": " Le thème « {theme} » n'a pas de décors : sans effet.",
     "save": "Enregistrer"
   },
   "shoot": {
@@ -162,10 +155,6 @@
     "stoppingWait": "Arrêt du photobooth : attente de {count} photo(s) en cours de traitement",
     "photo": "Photo prise",
     "photoWith": "Photo prise : {details}",
-    "with": {
-      "bw": "noir et blanc",
-      "deco": "décors du thème"
-    },
     "shootFailed": "Pas de photo : {reason}",
     "retouchFailed": "Le cadre n'a pas pu être appliqué : photo gardée telle quelle",
     "resumed": "{count} photo(s) interrompue(s) par un arrêt : traitement repris",
@@ -178,86 +167,11 @@
     "storageOk": "Stockage des photos de nouveau disponible",
     "rateLimited": "Trop de requêtes depuis l'appareil {ip} : refusées pendant une minute",
     "settingTheme": "Thème : {value}",
-    "settingDecoOn": "Décorations du thème sur les photos : activées",
-    "settingDecoOff": "Décorations du thème sur les photos : désactivées",
     "settingLiveOn": "Live view pendant le compte à rebours : activé",
     "settingLiveOff": "Live view pendant le compte à rebours : désactivé",
     "settingMirrorOn": "Effet miroir : activé",
     "settingMirrorOff": "Effet miroir : désactivé",
     "settingLang": "Langue : {value}",
     "skipped": "{count} entrées du journal ignorées (trop nombreuses en une minute)"
-  },
-  "frames": {
-    "names": {
-      "01-polaroid": "Polaroid",
-      "02-party": "Fête",
-      "03-cinema": "Cinéma",
-      "04-elegant": "Élégant"
-    },
-    "booth": {
-      "adding": "Ajout du cadre…"
-    },
-    "admin": {
-      "title": "Cadre appliqué aux photos",
-      "text": "Texte affiché sur les cadres",
-      "placeholder": "Ex. Mariage de Léa & Sam",
-      "textHint": "Le même texte pour tous les cadres. La date du jour s'ajoute toute seule sur les cadres qui l'affichent.",
-      "hint": "Ajoutez vos propres cadres (PNG transparent ou SVG, format 3:2) dans le dossier <code>frames/</code> du projet.",
-      "none": "Sans cadre",
-      "photoOnly": "Photo seule"
-    },
-    "settings": {
-      "unknownFrame": "Cadre inconnu."
-    },
-    "journal": {
-      "with": "cadre « {frame} »",
-      "settingFrame": "Cadre : {value}",
-      "settingNoFrame": "Cadre : aucun",
-      "settingTitle": "Texte du cadre : « {value} »"
-    }
-  },
-  "greenscreen": {
-    "noPhoto": "L'appareil n'a pas pris la photo de calibrage. Vérifiez la mise au point (visez une personne devant la toile, ou passez en mise au point manuelle) et réessayez.",
-    "notGreen": "Aucune toile verte trouvée : seulement {coverage} % de la photo est vert. La toile doit occuper une bonne partie de l'image et être bien éclairée.",
-    "failed": "Le calibrage a échoué. Réessayez.",
-    "booth": {
-      "applyingBackground": "Ajout du décor…"
-    },
-    "admin": {
-      "title": "Fond vert",
-      "hint": "Les invités posent devant une toile verte : le vert est remplacé par le décor choisi. Éclairez la toile uniformément, placez les personnes à 1 ou 2 m devant, et évitez les vêtements verts.",
-      "toggle": "Remplacer la toile verte",
-      "toggleHint": "Appliqué à toutes les photos, avec ou sans cadre.",
-      "calibrate": "Calibrer",
-      "calibrating": "Photo de calibrage en cours…",
-      "calibrateHint": "Prend une photo (pas ajoutée à la galerie) pour mesurer le vert exact de votre toile sous vos éclairages. Quelqu'un peut se tenir devant. Recalibrez si l'éclairage change.",
-      "calibrated": "Calibré le {date}.",
-      "notCalibrated": "Pas encore calibré : réglages par défaut pour une toile verte classique.",
-      "tolerance": "Tolérance",
-      "toleranceHint": "Augmentez-la si du vert reste autour des personnes ; diminuez-la si des parties des personnes disparaissent.",
-      "previewAlt": "Photo de calibrage avec le décor",
-      "backgrounds": "Décor",
-      "backgroundsHint": "Ajoutez vos propres décors (JPEG, PNG ou SVG, format 3:2) dans le dossier <code>backgrounds/</code> du projet.",
-      "noBackground": "Aucun décor dans le dossier backgrounds/."
-    },
-    "settings": {
-      "unknownBackground": "Décor inconnu.",
-      "badTolerance": "La tolérance doit être comprise entre 0 et 100."
-    },
-    "journal": {
-      "with": "décor « {background} »",
-      "settingOn": "Fond vert : activé",
-      "settingOff": "Fond vert : désactivé",
-      "settingBackground": "Décor du fond vert : {value}",
-      "settingTolerance": "Tolérance du fond vert : {value}",
-      "calibrated": "Fond vert calibré ({coverage} % de la photo est la toile verte)",
-      "calibrationFailed": "Calibrage du fond vert raté : {reason}"
-    },
-    "backgrounds": {
-      "01-beach": "Plage",
-      "02-space": "Espace",
-      "03-party-lights": "Lumières de fête",
-      "04-city-night": "Ville la nuit"
-    }
   }
 }

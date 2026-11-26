@@ -1,0 +1,17 @@
+{
+  "decorations": {
+    "admin": {
+      "toggle": "Décors du thème sur les photos",
+      "hint": "Pose aussi les dessins du thème (citrouilles, sapins, gâteau…) sur les photos, avec ou sans cadre.",
+      "none": " Le thème « {theme} » n'a pas de décors : sans effet."
+    },
+    "booth": {
+      "adding": "Ajout des décors…"
+    },
+    "journal": {
+      "with": "décors du thème",
+      "settingOn": "Décorations du thème sur les photos : activées",
+      "settingOff": "Décorations du thème sur les photos : désactivées"
+    }
+  }
+}

@@ -8,8 +8,7 @@
 const path = require('path');
 const fsp = require('fs').promises;
 const sharp = require('sharp');
-const { toRaw, rawLayer } = require('../photo');
-const decorations = require('../decorations');
+const { toRaw, rawLayer } = require('../../server/photo');
 
 const FRAMES_DIR = path.resolve(process.env.FRAMES_DIR || path.join(__dirname, '..', '..', 'frames'));
 const FRAME_RE = /\.(png|svg)$/i;
@@ -140,12 +139,15 @@ async function layers(frame, width, height, { title = '', locale } = {}) {
 }
 
 /**
- * Renders the frame (and the theme decorations, as on the photos) as a transparent PNG.
- * @param {object} opts { title: replaces {{title}}, locale: for {{date}}, deco: theme decorations or null }
+ * Renders the frame (and what the other modules lay over the photos, e.g. the theme
+ * decorations) as a transparent PNG.
+ * @param {object} opts { title: replaces {{title}}, locale: for {{date}},
+ *   others: { key, render(width, height) -> layers } (see features.otherLayers) }
  */
 async function render(frame, width, height, opts) {
+  const others = opts.others ? await opts.others.render(width, height) : [];
   return sharp({ create: { width, height, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
-    .composite([...(await layers(frame, width, height, opts)), ...(await decorations.render(opts.deco, width, height))])
+    .composite([...(await layers(frame, width, height, opts)), ...others])
     .png()
     .toBuffer();
 }
@@ -169,14 +171,14 @@ async function renderFrame(frame, width, height, title, date) {
 /** Lightweight preview (for the tablet and admin), cached in memory. */
 const previewCache = new Map();
 async function preview(frame, opts = {}) {
-  const key = `${frame.id}:${frame.mtime}:${today(opts.locale)}:${opts.title}:${opts.deco ? opts.deco.id : ''}`;
+  const key = `${frame.id}:${frame.mtime}:${today(opts.locale)}:${opts.title}:${opts.others ? opts.others.key : ''}`;
   if (previewCache.size > 100) previewCache.clear();
   if (!previewCache.has(key)) previewCache.set(key, render(frame, 1200, 800, opts).catch((e) => { previewCache.delete(key); throw e; }));
   return previewCache.get(key);
 }
 
 /**
- * Frame layers for one image size, for photo.process({ overlays }). They are the same for
+ * Frame layers for one image size, for photo.process({ layers }). They are the same for
  * every shot of an event (same frame, title, date and camera resolution), so the last two
  * sets are kept: the screen size (fast version) and the full size. Only the
  * non-transparent parts are kept (see opaqueParts): a few tens of MB for a 24 Mpx camera,

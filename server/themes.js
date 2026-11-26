@@ -97,7 +97,7 @@ const DEFAULT_THEME = 'night';
 const DECO_DIR = path.join(__dirname, '..', 'public', 'deco');
 
 /**
- * SVG decoration files of a theme (to also add them to the photos, see decorations.js),
+ * SVG decoration files of a theme (to also add them to the photos, see features/decorations/),
  * or null if the theme has none. { id, corner: path, top: path }
  */
 function decoFiles(id) {

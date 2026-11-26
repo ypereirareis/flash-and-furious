@@ -7,3 +7,4 @@ config
 scripts
 *.md
 tests
+features/*/tests

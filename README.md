@@ -124,13 +124,13 @@ placed on the corners of the preview and as a pattern in the right-hand column. 
 `deco-top` and `deco-pattern` in `server/themes.js`.
 "Theme decorations on photos" option (`/admin`, Theme card): the theme decorations are also added
 to the photos, with or without a frame (no effect for a theme without decorations), in colour even on black &
-white photos (`server/decorations.js`). The Gallery and Back buttons take the theme's bright colour.
+white photos (module [`features/decorations/`](#feature-modules)). The Gallery and Back buttons take the theme's bright colour.
 To add or change a theme: `server/themes.js` (one entry per theme) and its name in `public/locales/*.json`, then `docker compose up -d --build`.
 
 ## Photo editing
 
-Black & white (chosen by the guests on the tablet), the theme decorations, and the optional
-[frame](#frames) and [green screen](#green-screen) are applied in two steps:
+The edits of the [feature modules](#feature-modules) (green screen, black & white chosen by the guests on
+the tablet, frame, theme decorations) are applied in two steps:
 1. a 1920 px version for the tablet, in a fraction of a second: the photo shows up and the next shot can start;
 2. the full-size photo, then its 4K version for the slideshow, in the background, one photo at a time.
 
@@ -141,8 +141,41 @@ The result:
 A photo still waiting for its full-size version is noted in `photos/.cache/pending_<name>.json`: after a restart
 or a power cut, its processing resumes on start-up. A clean stop (`docker compose stop`) waits for it.
 
-The processing itself (`server/photo.js`) knows none of the optional features: they plug in a retouch step
-(green screen) or layers laid over the photo (frame, decorations).
+## Feature modules
+
+Everything that changes the photos, and its settings in `/admin`, is a module of the `features/` folder:
+
+| Module | What it does | In `/admin` |
+|---|---|---|
+| `greenscreen` | replaces a [green cloth](#green-screen) with a background | Green screen card: on/off, calibration, background, tolerance |
+| `bw` | black & white button on the tablet (the guests' choice) | — |
+| `frames` | a [frame](#frames) on the photos and over live view | Frames card: frame, text |
+| `decorations` | the theme's drawings on the photos | Colour theme card: on/off |
+
+**Choosing the modules**: `FEATURES` in `.env` (then `docker compose up -d`): `all` (default), `none`, or a
+list such as `FEATURES=bw,frames`. The active modules keep all their settings in `/admin`, to change during the
+event (frame, green screen on or off…). An inactive module is not loaded at all: no card, no button, no
+routes, never applied to the photos; its settings stay saved for when it is switched back on.
+
+**Removing a module from the code**: delete its folder (and its images folder: `frames/`, `backgrounds/`).
+Nothing else refers to it.
+
+**How the edits stack up**: the photo is decoded once, goes through the steps of the modules of the shot,
+then is encoded once (`server/photo.js`, which knows none of them). There are three stages, in this order:
+1. `pixels`: changes the RGB pixels (green screen, in colour);
+2. `image`: image operations (black & white: the photo and its background turn grey);
+3. `layers`: images laid over the photo in their own colours (frame, then decorations).
+
+The edits of a shot are decided when it is taken (with the settings of that moment), and saved with the photo
+until its full-size version is done.
+
+**Writing a module**: a folder `features/<id>/` with
+- `index.js`: `module.exports = (core) => ({ ... })`, the hooks are described in `server/features.js`
+  (settings, routes, the edit of a shot and its stage, tablet message, journal entries, screen files);
+- `locales/en.json`, `locales/fr.json`: its texts, in a `"<id>"` block;
+- `public/`: its files for the tablet and `/admin`, served at `/features/<id>/` (they register in
+  `BOOTH_PARTS` or `ADMIN_PARTS`, see `public/features.js`);
+- `tests/unit/`, `tests/functional/`: found by `./scripts/test.sh`.
 
 ## Frames
 
@@ -153,22 +186,8 @@ themselves inside it. In black & white, the frame keeps its colours.
 Adding a frame: drop a transparent PNG or a 3:2 SVG into `frames/` (see `frames/README.txt`). No restart needed.
 In SVGs, `{{title}}` is replaced with the text typed in `/admin` (the same for every frame) and `{{date}}` with today's date.
 
-### Switching it off, or removing it
-
-`FRAMES=off` (in `.env`, then `docker compose up -d`) disables the feature entirely: no card in `/admin`, no
-frame over live view, no frame routes, photos never framed. Its settings stay saved for when it is switched back on.
+Module `features/frames/` (see [Feature modules](#feature-modules)); the frames themselves are in `frames/`.
 The theme decorations on photos do not depend on it.
-
-| Where | What |
-|---|---|
-| `server/frames/` | everything on the server: settings (frame, text), routes, journal entries (`index.js`), frame images (`render.js`) |
-| `public/frames/` | the frame over live view on the tablet (`booth.js`), the `/admin` card (`admin.js`), their styles (`frames.css`) |
-| `"frames"` block of `public/locales/*.json` | all its texts |
-| `frames/`, `tests/unit/frames.test.js`, `tests/functional/08-frames.test.js` | frames and tests |
-
-Elsewhere, only a few lines marked "frames": `server/index.js` (the module and its routes, the photo of a shot,
-settings), `public/index.html` and `public/admin.html` (their tags), `Dockerfile`, `docker-compose.yml` and
-`scripts/smoke-test.sh` (the frames folder).
 
 ## Green screen
 
@@ -199,22 +218,9 @@ For a good result:
 Adding a background: drop a JPEG, PNG or SVG into `backgrounds/`, ideally 3:2 and at least the camera's
 resolution (see `backgrounds/README.txt`). No restart needed. Live view on the tablet still shows the green cloth.
 
-### Switching it off, or removing it
-
-`GREEN_SCREEN=off` (in `.env`, then `docker compose up -d`) disables the feature entirely: no card in `/admin`,
-no green screen routes, photos never changed. Its settings stay saved for when it is switched back on.
-
-The code is kept apart so that it can be removed easily:
-
-| Where | What |
-|---|---|
-| `server/greenscreen/` | everything on the server: settings, routes, journal entries (`index.js`), images (`images.js`), pixel work (`key.js`, `worker.js`) |
-| `public/greenscreen/` | the `/admin` card (`admin.js`, `admin.css`) |
-| `"greenscreen"` block of `public/locales/*.json` | all its texts |
-| `backgrounds/`, `tests/unit/greenscreen.test.js`, `tests/functional/07-greenscreen.test.js` | backgrounds and tests |
-
-Elsewhere, only a few lines marked "green screen": `server/index.js` (the module and its routes, the photo of a
-shot, settings), `public/admin.html` (its tags), `Dockerfile` and `docker-compose.yml` (the backgrounds folder).
+Module `features/greenscreen/` (see [Feature modules](#feature-modules)): settings and routes (`index.js`),
+images (`images.js`), pixel work (`key.js`, `worker.js`), the `/admin` card (`public/`); the backgrounds are in
+`backgrounds/`.
 
 ## Automatic or manual focus
 
@@ -295,14 +301,13 @@ The admin page adapts by itself: help texts provided by the driver, sections hid
 | `LIVE_QUALITY` | 70 | JPEG quality of the live stream (lower = lighter) |
 | `LIVE_MAX_SECONDS` | 10 | Maximum live view duration (s) |
 | `CAMERA_DRIVER` | canon-eos-1000d | Camera driver (`server/cameras/`) |
-| `FRAMES` | on | `off` disables the [frames](#frames) |
+| `FEATURES` | all | active [feature modules](#feature-modules): `all`, `none`, or e.g. `bw,frames,decorations,greenscreen` |
 | `FRAME_TITLE` | Flash & Furious | Frame text on first start (then editable in `/admin`) |
 | `HOST_IP` | (auto) | Address shown in `/admin` for the tablet |
 | `TZ` | Europe/Paris | Time zone used to name files |
 | `PUID` / `PGID` | 1000 | Owner of the files created in the photos folder |
 | `PHOTOS_PATH`, `PHOTOS_CREATE`, `PHOTOS_EXTERNAL`, `STORAGE_MIN_FREE_MB` | see [Photos folder](#photos-folder) | Photos folder on the host |
 | `JOURNAL_MAX_ENTRIES`, `JOURNAL_MAX_BYTES`, `JOURNAL_MAX_PER_MINUTE` | 5000, 2097152, 120 | Limits of the [event journal](#event-journal) |
-| `GREEN_SCREEN` | on | `off` disables the [green screen](#green-screen) |
 | `BACKGROUNDS_DIR` | `backgrounds/` (mounted from the project) | [Green screen](#green-screen) backgrounds |
 
 ## The camera stops responding ("PTP Timeout")
@@ -335,18 +340,18 @@ Everything runs in Docker, in the app image (no Node needed on the host):
 ./scripts/test.sh functional --only queue --keep   # one test file; keep photos, server logs and timings
 ```
 
-- **Unit tests** (`tests/unit/`, Node's built-in `node:test`): photo processing (black & white, orientation,
-  retouch and layers, theme decorations), frames (text fitting, transparent parts, colour, black & white, screen
+- **Unit tests** (`tests/unit/` and `features/*/tests/unit/`, Node's built-in `node:test`): photo processing
+  (orientation, stages), black & white, theme decorations, frames (text fitting, transparent parts, colour, black & white, screen
   versions, settings), settings, storage checks, translations, themes, gphoto2 drivers,
   photo names and addresses (`server/photos.js`), event journal (limits on disk, in memory and per minute),
   green screen (thresholds, calibration, soft edges, green reflections, backgrounds).
-- **Functional tests** (`tests/functional/`): each test file starts the real server with its own photos and
+- **Functional tests** (`tests/functional/` and `features/*/tests/functional/`): each test file starts the real server with its own photos and
   config folders, and drives it like the tablet does (HTTP API and events). Covered: camera detection and
   problems (unplugged, used by another program, asleep), photos as taken and in black & white, decorations
   without frame, upright photo, RAW+JPEG, photo refused while another is in progress, live view,
   the queue of full-size photos, storage problems, focus failure, request limit, power cut and clean stop
   during processing, event journal, green screen (calibration, backgrounds, photos with decorations and in
-  black & white), frames (colour, black & white, decorations, broken frame, settings, `FRAMES=off`). A timings table is printed at the end.
+  black & white), frames (colour, black & white, decorations, broken frame, settings, module off), modules chosen with `FEATURES`. A timings table is printed at the end.
 - **Fake camera** (`tests/fake-camera/gphoto2`): answers like a Canon EOS 1000D; the tests switch it to
   "unplugged", "used by another program", "asleep", "focus not found" or "slow" while the server runs.
 - **`--real`**: the tests that need the fake camera (failure modes, special photos) are skipped. The
@@ -387,7 +392,10 @@ rebuilt when `package.json` or `package-lock.json` change.
 
 - `GET /api/status`: camera detected or not, shot in progress
 - `POST /api/shoot`: takes a photo (with the `/admin` settings)
-- `GET /api/settings`, `PUT /api/settings` `{ "mirror", "live", "frame", "frameTitle", "theme", "photoDeco", "lang", "greenScreen", "background", "greenTolerance" }`, `GET /api/themes`, `GET /api/languages`: settings
+- `GET /api/settings`, `PUT /api/settings` `{ "mirror", "live", "theme", "lang" }` and those of the active modules
+  (`"frame", "frameTitle"`, `"photoDeco"`, `"greenScreen", "background", "greenTolerance"`), `GET /api/themes`, `GET /api/languages`: settings
+- `GET /api/features`: active feature modules and their files for the screens
+- `POST /api/shoot` `{ "bw": true }`: black & white chosen on the tablet (module `bw`)
 - `GET /api/frames`, `GET /api/frames/:id.png`: frame list and preview
 - `GET /api/backgrounds`, `GET /api/backgrounds/:id.jpg`: green screen backgrounds and their thumbnails
 - `POST /api/greenscreen/calibrate`: takes a calibration photo of the green cloth (`422` if no green cloth is seen);
@@ -399,7 +407,7 @@ rebuilt when `package.json` or `package-lock.json` change.
 - `GET /api/events`: SSE stream (countdown, phases, new photo, errors, journal entries)
 - `GET /api/journal?limit=50&before=<id>`: event journal, newest first, in the UI language; `before` gives the next page
 - `/media/thumb/:name`, `/media/view/:name`, `/media/tv/:name`: thumbnail, preview (1920 px), slideshow (3840 px); no access to originals: they are retrieved on the host
-- `/locales/:lang.json`: UI texts
+- `/locales/:lang.json`: UI texts (with those of the modules)
 
 ## License
 

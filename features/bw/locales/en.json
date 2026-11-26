@@ -1,0 +1,11 @@
+{
+  "bw": {
+    "button": "Black & white",
+    "on": "Black & white photos",
+    "off": "Colour photos",
+    "applying": "Converting to black & white…",
+    "journal": {
+      "with": "black & white"
+    }
+  }
+}

@@ -44,9 +44,11 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json ./
 COPY server ./server
 COPY public ./public
-# frames (optional)
+# feature modules (FEATURES): delete a folder of features/ to remove a module
+COPY features ./features
+# frames (module features/frames/)
 COPY frames ./frames
-# green screen (optional) backgrounds
+# backgrounds (module features/greenscreen/)
 COPY backgrounds ./backgrounds
 # Checks and prepares the photos folder on every start (idempotent), then runs the CMD
 COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint.sh

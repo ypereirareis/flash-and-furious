@@ -10,11 +10,9 @@ const sharp = require('sharp');
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'green-'));
 process.env.CONFIG_DIR = tmp;
-const key = require('../../server/greenscreen/key');
-const feature = require('../../server/greenscreen');
-const greenscreen = require('../../server/greenscreen/images');
-const settings = require('../../server/settings');
-const photo = require('../../server/photo');
+const key = require('../../key');
+const greenscreen = require('../../images');
+const { def, features, edit, settings } = require('../../../../tests/unit/modules');
 test.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
 
 const CLOTH = [40, 175, 70];
@@ -123,12 +121,12 @@ test('photo pipeline: background in place of the cloth, then black & white over 
   const pixel = async (file, x, y) => [...(await sharp(file).extract({ left: x, top: y, width: 1, height: 1 }).raw().toBuffer())];
 
   const colour = path.join(tmp, 'colour.jpg');
-  await photo.process(shot, colour, { retouch: feature.retouch(green) });
+  await edit({ greenscreen: green }, shot, colour);
   assert.ok(close(await pixel(colour, 100, 100), BG, 12), 'cloth -> background');
   assert.ok(close(await pixel(colour, 750, 600), SKIN, 12), 'person kept');
 
   const bw = path.join(tmp, 'bw.jpg');
-  await photo.process(shot, bw, { retouch: feature.retouch(green), bw: true, maxSize: 600 });
+  await edit({ greenscreen: green, bw: true }, shot, bw, { maxSize: 600 });
   const meta = await sharp(bw).metadata();
   assert.equal(meta.width, 600);
   const [r, g, b] = await pixel(bw, 40, 40);
@@ -171,13 +169,13 @@ test('settings: added to the app settings, cleaned up', async () => {
 });
 
 test('hooks: nothing to do for a photo while off, settings checked', async () => {
+  const feature = def('greenscreen');
   await settings.update({ greenScreen: false, background: null });
-  assert.equal(await feature.forShot(), null);
-  assert.equal(feature.retouch(null), null);
+  assert.equal(await feature.forShot(settings.get()), null);
   await settings.update({ greenScreen: true });
-  const green = await feature.forShot();
+  const green = await feature.forShot(settings.get());
   assert.deepEqual([green.background.id, green.background.label, green.tolerance], ['01-beach', 'Beach', 50]);
-  assert.equal(typeof feature.retouch(green), 'function');
+  assert.equal(features.steps({ greenscreen: green }).pixels.length, 1);
   assert.deepEqual(await feature.settingsPatch({ greenTolerance: 101 }), { error: 'The tolerance must be between 0 and 100.' });
   assert.ok((await feature.settingsPatch({ background: 'nope' })).error);
   assert.deepEqual(await feature.settingsPatch({ greenScreen: 0, background: '02-space', mirror: true }), { patch: { greenScreen: false, background: '02-space' } });
@@ -190,10 +188,12 @@ test('hooks: nothing to do for a photo while off, settings checked', async () =>
   ]);
 });
 
-test('hooks: tablet message and journal detail', () => {
-  assert.equal(feature.step(null), null);
-  assert.equal(feature.journalDetail(null), null);
+test('hooks: tablet message and journal detail, with the other edits', () => {
   const green = { background: { label: 'Beach' } };
-  assert.equal(feature.step(green).key, 'greenscreen.booth.applyingBackground');
-  assert.deepEqual(feature.journalDetail(green), { key: 'greenscreen.journal.with', vars: { background: 'Beach' } });
+  assert.equal(features.step({}), null);
+  assert.equal(features.step({ greenscreen: green, bw: true }).key, 'greenscreen.booth.applyingBackground');
+  assert.deepEqual(features.journalDetails({ bw: true, greenscreen: green }), [
+    { key: 'greenscreen.journal.with', vars: { background: 'Beach' } },
+    { key: 'bw.journal.with' },
+  ]);
 });

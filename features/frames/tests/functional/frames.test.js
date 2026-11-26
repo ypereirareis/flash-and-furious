@@ -1,11 +1,11 @@
 'use strict';
 
-// Frames (optional feature, server/frames/): photos with a frame, previews, settings, FRAMES=off.
+// Frames module: photos with a frame, previews, settings, module switched off (FEATURES).
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { REAL, fakeOnly, startServer, shoot, waitFullSize, media, orientedSize, colourAt, isGrey } = require('./helpers');
+const { REAL, fakeOnly, startServer, shoot, waitFullSize, media, orientedSize, colourAt, isGrey } = require('../../../../tests/functional/helpers');
 
 let server;
 test.before(async () => { server = await startServer('frames'); });
@@ -93,10 +93,11 @@ test('frame that cannot be applied: photo saved as is, with a message', { skip: 
   }
 });
 
-test('FRAMES=off: no routes, no settings for the screens, photos never framed', { skip: fakeOnly }, async () => {
-  const off = await startServer('frames-off', { env: { FRAMES: 'off' } });
+test('switched off (not in FEATURES): no routes, no settings for the screens, photos never framed', { skip: fakeOnly }, async () => {
+  const off = await startServer('frames-off', { env: { FEATURES: 'bw,decorations,greenscreen' } });
   try {
-    for (const url of ['/api/frames', '/api/frames/01-polaroid.png']) assert.equal((await off.api(url)).status, 404, url);
+    for (const url of ['/api/frames', '/api/frames/01-polaroid.png', '/features/frames/booth.js']) assert.equal((await off.api(url)).status, 404, url);
+    assert.deepEqual((await off.json('/api/features')).map((f) => f.id), ['bw', 'decorations', 'greenscreen']);
     const s = await off.settings({ frame: '02-party', frameTitle: 'x' }); // ignored, not refused
     for (const k of ['frame', 'frameTitle']) assert.ok(!(k in s), `no ${k}`);
     const shot = await shoot(off);
