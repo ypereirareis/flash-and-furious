@@ -1,6 +1,7 @@
 #!/bin/sh
-# Container entrypoint (run as root, under tini): checks and prepares the photos folder, then
-# starts the app as PUID:PGID, not as root.
+# Container entrypoint (PID 1, run as root): checks and prepares the photos folder, then replaces
+# itself with tini and the app, both as PUID:PGID: nothing keeps running as root. tini stays PID 1:
+# it passes the stop signals on to the app and reaps orphan processes.
 #
 # Idempotent: it runs on every start and only changes what is not already right.
 #  - a folder that Docker has just created (empty, owned by root) is handed over to PUID:PGID;
@@ -103,7 +104,8 @@ if $AS_USER; then
   [ -n "$USB_GID" ] && groups="$PGID,$USB_GID"
   echo "[app] running as $PUID:$PGID (groups $groups)"
   # no capabilities kept; HOME for gphoto2's own settings
-  exec setpriv --reuid="$PUID" --regid="$PGID" --groups="$groups" --inh-caps=-all --bounding-set=-all env HOME=/tmp "$@"
+  exec setpriv --reuid="$PUID" --regid="$PGID" --groups="$groups" --inh-caps=-all --bounding-set=-all \
+    env HOME=/tmp /sbin/tini -- "$@"
 fi
 echo "[app] running as root (PUID/PGID not set)"
-exec "$@"
+exec /sbin/tini -- "$@"

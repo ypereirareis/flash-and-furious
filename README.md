@@ -221,9 +221,9 @@ With `--keep`, the photo also stays on the memory card if the camera records to 
 
 ## Running as a user, not root
 
-In the container, [tini](https://github.com/krallin/tini) is PID 1: it passes the stop signals on to the app and
-reaps orphan processes. The entrypoint prepares the folders as root, then starts the app as `PUID:PGID`, with no
-capabilities kept. `docker compose stop` (SIGTERM) stops it cleanly: live view closed, current camera command and
+The entrypoint prepares the folders as root, then replaces itself with [tini](https://github.com/krallin/tini) and
+the app, both as `PUID:PGID` with no capabilities kept: nothing keeps running as root. tini is PID 1: it passes the
+stop signals on to the app and reaps orphan processes. `docker compose stop` (SIGTERM) stops it cleanly: live view closed, current camera command and
 photos being processed finished (12 s at most), journal written.
 
 To use the camera, the app's user also gets the group of its USB device on the host, `USB_GID` (46 = `plugdev` on
