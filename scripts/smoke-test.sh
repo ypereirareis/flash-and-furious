@@ -27,16 +27,24 @@ expect "languages"            /api/languages           200 '"id":"fr"'
 expect "camera driver"        /api/camera              200 '"capabilities"'
 expect "themes"               /api/themes              200 '"id":"halloween"'
 expect "themes CSS"           /themes.css              200 '[data-theme="night"]'
-# frames (optional feature: remove these two lines with it)
-expect "frames"               /api/frames              200 '"id":"01-polaroid"'
-expect "frame preview (SVG)"  /api/frames/02-party.png 200
+expect "feature modules"      /api/features            200 '['
+# frames module, when active
+if curl -fsS "$BASE/api/features" | grep -q '"id":"frames"'; then
+  expect "frames"               /api/frames              200 '"id":"01-polaroid"'
+  expect "frame preview (SVG)"  /api/frames/02-party.png 200
+  expect "frames texts"         /locales/en.json         200 '"frames":{'
+fi
 expect "photos list"          /api/photos              200 '['
 expect "guest page"           /                        200 'Flash &amp; Furious'
 expect "admin page"           /admin                   200 'data-i18n="admin.display"'
 expect "slideshow page"       /slideshow               200 'data-i18n="slideshow.newPhoto"'
-expect "English texts"        /locales/en.json         200 '"smile": "Smile!"'
-expect "French texts"         /locales/fr.json         200 '"smile": "Souriez !"'
-expect "theme decoration"     /deco/christmas-corner.svg 200 '<svg'
+expect "English texts"        /locales/en.json         200 '"smile":"Smile!"'
+expect "French texts"         /locales/fr.json         200 '"smile":"Souriez !"'
+# decorations module, when active
+if curl -fsS "$BASE/api/features" | grep -q '"id":"decorations"'; then
+  expect "theme decorations CSS" /api/decorations/themes.css 200 'html[data-theme="christmas"]'
+  expect "theme decoration"      /features/decorations/deco/christmas-corner.svg 200 '<svg'
+fi
 expect "no direct photo URL"  /photos/x.jpg            404
 expect "unknown media"        /media/view/missing.jpg  404
 

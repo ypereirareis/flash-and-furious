@@ -1,0 +1,21 @@
+{
+  "decorations": {
+    "admin": {
+      "screen": "Décors du thème sur la tablette",
+      "screenHint": "Dessins du thème autour de l'aperçu.",
+      "photos": "Décors du thème sur les photos",
+      "photosHint": "Dessins du thème dans les coins des photos, avec ou sans cadre.",
+      "none": "Le thème « {theme} » n'a pas de décors : sans effet."
+    },
+    "booth": {
+      "adding": "Ajout des décors…"
+    },
+    "journal": {
+      "with": "décors du thème",
+      "screenOn": "Décors du thème sur la tablette : activés",
+      "screenOff": "Décors du thème sur la tablette : désactivés",
+      "photosOn": "Décorations du thème sur les photos : activées",
+      "photosOff": "Décorations du thème sur les photos : désactivées"
+    }
+  }
+}

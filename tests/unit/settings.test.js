@@ -17,11 +17,11 @@ test.after(() => fs.rmSync(dir, { recursive: true, force: true }));
 
 test('defaults when nothing is saved', () => {
   assert.deepEqual(settings.load(), {
-    mirror: true, live: false, theme: 'night', photoDeco: false, lang: 'fr',
+    mirror: true, live: false, theme: 'night', lang: 'fr',
   });
 });
 
-test('settings added by an optional feature: defaults, clean-up, saved in the same file', async () => {
+test('settings added by a feature module: defaults, clean-up, saved in the same file', async () => {
   settings.extend({ defaults: { extra: 1 }, sanitize: (v) => ({ extra: Number(v.extra) > 0 ? Number(v.extra) : 1 }) });
   assert.equal(settings.get().extra, 1);
   assert.equal((await settings.update({ extra: '7' })).extra, 7);
@@ -35,11 +35,11 @@ test('update: values cleaned up, saved, read again on load', async () => {
     theme: 'birthday',
     lang: 'de', // unknown: default
     live: 1,
-    photoDeco: 'yes',
+    mirror: 0,
     unknown: 1, // not a setting: dropped
   });
   assert.equal(s.theme, 'birthday');
-  assert.equal(s.photoDeco, true);
+  assert.equal(s.mirror, false);
   assert.ok(!('unknown' in s));
   assert.equal(s.lang, 'fr');
   assert.equal(s.live, true);

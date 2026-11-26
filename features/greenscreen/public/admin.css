@@ -1,0 +1,18 @@
+/* Green screen admin card (module features/greenscreen/) */
+.green-body { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; padding: 16px 0; border-top: 1px solid var(--line); }
+.green-calib { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.green-preview { width: 100%; margin: 0; }
+.green-preview img { display: block; width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 16px; background: var(--panel-strong); }
+.green-preview figcaption { margin-top: 8px; color: var(--muted); font-size: 16px; }
+.green-calib .big-btn { display: inline-flex; width: auto; padding: 0 28px; }
+.green-calib .big-btn svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2; }
+.green-tolerance { display: flex; flex-direction: column; gap: 10px; }
+.green-tolerance label { font-size: 22px; }
+.green-tolerance output { color: var(--heading); font-weight: 700; margin-left: 6px; }
+.green-tolerance input[type="range"] { width: 100%; height: 44px; accent-color: var(--sun); }
+.green-tolerance small { color: var(--muted); font-size: 16px; }
+#greenCard h3 { margin: 18px 0 4px; font-size: 22px; font-weight: 600; }
+.bg-thumb img { object-fit: cover; }
+@media (max-width: 700px) {
+  .green-body { grid-template-columns: 1fr; }
+}

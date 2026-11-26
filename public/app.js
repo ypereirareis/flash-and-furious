@@ -65,8 +65,9 @@ function renderLiveMsg() {
 
 /* ---------- Settings (set in /admin) ---------- */
 let settings = { mirror: true, live: false };
-// Optional features shown on this screen, in their own files (e.g. frames/booth.js): { render({ settings, stageFree }) }
-const parts = window.BOOTH_PARTS || [];
+// What the feature modules add to this screen (see features.js):
+// { render?({ settings, stageFree }), shootOptions?() -> fields of the shot request }
+const parts = window.BOOTH_PARTS;
 
 function applySettings(next) {
   if (next.lang && next.lang !== I18N.lang) return location.reload(); // language changed in /admin
@@ -85,7 +86,7 @@ async function loadSettings() {
 // "last photo" badge
 function renderStage() {
   const stageFree = liveOn || els.review.hidden; // live view or the empty screen, not the last photo
-  parts.forEach((p) => p.render({ settings, stageFree }));
+  parts.forEach((p) => p.render && p.render({ settings, stageFree }));
   // the last photo (edited or not) is clearly labelled as such
   const badge = $('lastBadge');
   badge.hidden = els.review.hidden;
@@ -121,24 +122,6 @@ async function refreshStatus() {
 // No context menu ("Save image") on photos
 document.addEventListener('contextmenu', (e) => { if (e.target.closest('img')) e.preventDefault(); });
 
-/* ---------- Black & white (guests' choice, remembered on this tablet) ---------- */
-let bw = false;
-try { bw = localStorage.getItem('flash-and-furious.bw') === '1'; } catch (_) { /* storage unavailable */ }
-function renderBw() {
-  const btn = $('bwBtn');
-  btn.classList.toggle('active', bw);
-  btn.setAttribute('aria-pressed', String(bw));
-  document.body.classList.toggle('bw', bw); // live view shown in black & white
-}
-$('bwBtn').addEventListener('click', () => {
-  if (busy) return;
-  bw = !bw;
-  try { localStorage.setItem('flash-and-furious.bw', bw ? '1' : '0'); } catch (_) { /* ignored */ }
-  renderBw();
-  toast(t(bw ? 'booth.bwOn' : 'booth.bwOff'), 'ok');
-});
-renderBw();
-
 /* ---------- Shooting ---------- */
 els.shootBtn.addEventListener('click', async () => {
   if (busy) return;
@@ -146,7 +129,8 @@ els.shootBtn.addEventListener('click', async () => {
   els.shootBtn.disabled = true;
   try {
     const r = await fetch('/api/shoot', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bw }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({}, ...parts.map((p) => (p.shootOptions ? p.shootOptions() : {})))),
     });
     if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || t('booth.cannotStart'));
   } catch (e) {
@@ -235,7 +219,7 @@ function connectEvents() {
           startShooting();
           showOverlay('', t('booth.preparingLive'));
         } else if (ev.phase === 'focusing') showOverlay(undefined, t('booth.focusing'));
-        else if (ev.phase === 'framing') showOverlay(ev.icon, ev.message); // photo being edited: message from the server
+        else if (ev.phase === 'editing') showOverlay(ev.icon, ev.message); // photo being edited: message from the server
         else if (ev.phase === 'retrying') showOverlay('', t('booth.retrying'));
         else if (ev.phase === 'capturing') {
           hideLive(); // live view stops on capture
@@ -359,6 +343,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 /* ---------- Startup ---------- */
 (async function init() {
   const initial = await loadSettingsLang(); // language first, so every text is translated
+  await loadFeatures('booth');
   if (initial) applySettings(initial);
   refreshStatus(); // don't wait: the camera state arrives in parallel
   await loadPhotos();

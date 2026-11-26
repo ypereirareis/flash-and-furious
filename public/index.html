@@ -12,7 +12,6 @@
   <title>Flash &amp; Furious</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="themes.css" />
-  <link rel="stylesheet" href="frames/frames.css" /><!-- frames (optional) -->
 </head>
 <body>
   <main id="view-shoot" class="view active">
@@ -31,10 +30,6 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
         </button>
       </div>
-      <button id="bwBtn" class="big-btn bw-btn" aria-pressed="false">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/></svg>
-        <span data-i18n="booth.bw">Black &amp; white</span>
-      </button>
       <button id="shootBtn" class="shutter" aria-label="Take a photo" data-i18n-attr="aria-label:booth.shoot">
         <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
       </button>
@@ -78,7 +73,7 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="i18n.js"></script>
-  <script src="frames/booth.js"></script><!-- frames (optional) -->
+  <script src="features.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

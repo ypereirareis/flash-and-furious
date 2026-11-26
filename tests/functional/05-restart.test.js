@@ -12,7 +12,7 @@ const pending = (server) => fs.readdirSync(server.cacheDir).filter((f) => f.star
 /** Shoots and stops the server with `signal` as soon as the photo is shown. */
 async function shootThenStop(server, signal) {
   const from = server.events.list.length;
-  const shot = shoot(server, { bw: true });
+  const shot = shoot(server, { testEdit: true }); // edited: its full size is queued
   await waitFor(() => server.events.list.slice(from).some((e) => e.type === 'photo'), { timeout: 60000, what: 'the photo' });
   const name = server.events.list.slice(from).find((e) => e.type === 'photo').photo.name;
   const queued = pending(server).length > 0;
@@ -24,7 +24,6 @@ async function shootThenStop(server, signal) {
 async function newServer(name) {
   const server = await startServer(name);
   if (!REAL) server.camera.photo(await photos.p24());
-  await server.settings({ theme: 'christmas', photoDeco: true }); // edited photos
   return server;
 }
 

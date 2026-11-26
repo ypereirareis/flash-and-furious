@@ -1,0 +1,21 @@
+{
+  "decorations": {
+    "admin": {
+      "screen": "Theme decorations on the tablet",
+      "screenHint": "Drawings of the theme around the preview.",
+      "photos": "Theme decorations on the photos",
+      "photosHint": "Drawings of the theme on the corners of the photos, with or without a frame.",
+      "none": "The “{theme}” theme has no decorations: no effect."
+    },
+    "booth": {
+      "adding": "Adding the decorations…"
+    },
+    "journal": {
+      "with": "theme decorations",
+      "screenOn": "Theme decorations on the tablet: on",
+      "screenOff": "Theme decorations on the tablet: off",
+      "photosOn": "Theme decorations on photos: on",
+      "photosOff": "Theme decorations on photos: off"
+    }
+  }
+}

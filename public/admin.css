@@ -76,7 +76,6 @@ body.admin { overflow-y: auto; }
 .net-more { display: block; color: var(--muted); font-size: 15px; margin-top: 4px; }
 .net-links { display: flex; flex-direction: column; gap: 6px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 16px; }
 .net-links a { color: var(--text); opacity: .8; }
-.deco-row { margin-top: 16px; border-top: 1px solid var(--line); }
 
 /* Language */
 /* Language: one small flag per language in the header */

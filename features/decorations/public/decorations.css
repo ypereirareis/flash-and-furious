@@ -1,0 +1,23 @@
+/*
+ * Theme decorations on the screens (module features/decorations/): straddling the preview
+ * corners (mostly over the empty bands around the photo), without catching touches, and a
+ * pattern in the control column. Shown when "Theme decorations on the screens" is on
+ * (html.screen-deco, see booth.js); the drawings of each theme come from
+ * /api/decorations/themes.css (none for a theme without decorations).
+ */
+html { --deco-corner: none; --deco-top: none; --deco-pattern: none; }
+
+html.screen-deco .controls {
+  /* the core gradient of the column (style.css), with the pattern over it */
+  background: var(--deco-pattern) center / 120px repeat, linear-gradient(180deg, rgba(var(--accent-rgb), .32), rgba(var(--accent-rgb), .12));
+}
+html.screen-deco #view-shoot::before, html.screen-deco #view-shoot::after {
+  content: ""; position: absolute; pointer-events: none; z-index: 6;
+  background: no-repeat left bottom / contain; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .35));
+}
+html.screen-deco #view-shoot::before { left: 2px; bottom: 0; width: 300px; height: 225px; background-image: var(--deco-corner); }
+html.screen-deco #view-shoot::after { left: 4px; top: 4px; width: 300px; height: 177px; background-image: var(--deco-top); background-position: left top; }
+@media (orientation: portrait), (max-height: 720px) {
+  html.screen-deco #view-shoot::before { width: 210px; height: 158px; }
+  html.screen-deco #view-shoot::after { width: 200px; height: 118px; }
+}

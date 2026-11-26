@@ -18,7 +18,6 @@ const DEFAULTS = {
   mirror: true, // live view mirrored on the tablet
   live: false, // live view during the countdown
   theme: themes.DEFAULT_THEME, // UI colour theme (see themes.js)
-  photoDeco: false, // also add the theme's SVG decorations to the photos
   lang: i18n.isValid(ENV_LANG) ? ENV_LANG : i18n.FALLBACK, // UI language (public/locales/)
 };
 /**
@@ -51,7 +50,6 @@ function sanitize(s) {
     mirror: Boolean(s.mirror),
     live: Boolean(s.live),
     theme: themes.isValid(s.theme) ? s.theme : DEFAULTS.theme,
-    photoDeco: Boolean(s.photoDeco),
     lang: i18n.isValid(s.lang) ? s.lang : DEFAULTS.lang,
   };
   return Object.assign(base, ...extensions.map((e) => e.clean(s)));

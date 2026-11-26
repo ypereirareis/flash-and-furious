@@ -1,7 +1,6 @@
 'use strict';
 
-// Processing of a photo (server/photo.js) and the theme decorations (server/decorations.js),
-// without any optional feature.
+// Processing of a photo (server/photo.js): the stages the feature modules plug into.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
@@ -9,7 +8,6 @@ const os = require('os');
 const path = require('path');
 const sharp = require('sharp');
 const photo = require('../../server/photo');
-const decorations = require('../../server/decorations');
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'photo-'));
 test.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
@@ -33,40 +31,31 @@ const pixel = async (file, x, y) => {
 };
 const grey = ([r, g, b]) => Math.max(r, g, b) - Math.min(r, g, b) <= 3;
 
-test('black & white, the right way up, limited to maxSize', async () => {
-  const dst = path.join(tmp, 'bw.jpg');
-  await photo.process(await testPhoto('bw.jpg', { orientation: 6 }), dst, { bw: true, maxSize: 600 });
+test('no edit: the right way up, limited to maxSize', async () => {
+  const dst = path.join(tmp, 'plain.jpg');
+  await photo.process(await testPhoto('plain.jpg', { orientation: 6 }), dst, { maxSize: 600 });
   const m = await sharp(dst).metadata();
   assert.deepEqual([m.width, m.height], [400, 600], 'portrait, at most 600 px');
-  assert.ok(grey(await pixel(dst, 200, 300)));
+  const [r, , b] = await pixel(dst, 200, 100);
+  assert.ok(r > 150 && b < 100, 'colours kept');
 });
 
-test('retouch before black & white, overlays in colour over it, in order', async () => {
-  const dst = path.join(tmp, 'layers.jpg');
+test('stages in order: pixels, then image, then layers in colour over it', async () => {
+  const dst = path.join(tmp, 'stages.jpg');
   const order = [];
   const square = (colour, name) => async (w) => {
     order.push(name);
     return [{ input: await sharp({ create: { width: 50, height: 50, channels: 3, background: colour } }).png().toBuffer(), left: Math.round(w / 2), top: 10 }];
   };
-  const retouch = async ({ data }) => Buffer.from(data).fill(255); // all white
-  await photo.process(await testPhoto('layers.jpg'), dst, { retouch, bw: true, overlays: [square('#00ff00', 'first'), square('#ff0000', 'second')] });
-  assert.deepEqual(order, ['first', 'second']);
+  const white = async ({ data }) => { order.push('pixels 1'); return Buffer.from(data).fill(255); };
+  const darker = async ({ data }) => { order.push('pixels 2'); return data.map((v) => v - 55); };
+  const toGrey = (img) => { order.push('image'); return img.greyscale(); };
+  await photo.process(await testPhoto('stages.jpg'), dst, {
+    pixels: [white, darker], image: [toGrey], layers: [square('#00ff00', 'layer 1'), square('#ff0000', 'layer 2')],
+  });
+  assert.deepEqual(order, ['pixels 1', 'pixels 2', 'image', 'layer 1', 'layer 2']);
   const [r, g, b] = await pixel(dst, 625, 35);
-  assert.ok(r > 200 && g < 60 && b < 60, `last overlay on top, in colour: ${[r, g, b]}`);
-  assert.ok(await pixel(dst, 100, 400).then((p) => p.every((v) => v > 240)), 'retouched photo');
-});
-
-test('theme decorations: on a photo without frame, only when chosen', async () => {
-  assert.equal(decorations.forPhoto({ photoDeco: false, theme: 'birthday' }), null);
-  assert.equal(decorations.forPhoto({ photoDeco: true, theme: 'night' }), null, 'theme without decorations');
-  const deco = decorations.forPhoto({ photoDeco: true, theme: 'birthday' });
-  assert.equal(deco.id, 'birthday');
-  const plain = path.join(tmp, 'plain.jpg');
-  const decorated = path.join(tmp, 'decorated.jpg');
-  const src = await testPhoto('deco.jpg');
-  await photo.process(src, plain, { bw: true });
-  await photo.process(src, decorated, { bw: true, overlays: [decorations.overlay(deco)] });
-  assert.ok(!grey(await pixel(decorated, 150, 700)) || !grey(await pixel(decorated, 100, 650)), 'drawing in colour in the bottom-left corner');
-  assert.deepEqual(await pixel(decorated, 900, 400), await pixel(plain, 900, 400), 'middle untouched');
-  assert.equal(decorations.overlay(null), null);
+  assert.ok(r > 200 && g < 60 && b < 60, `last layer on top, in colour: ${[r, g, b]}`);
+  const p = await pixel(dst, 100, 400);
+  assert.ok(grey(p) && p[0] > 190 && p[0] < 210, `pixels steps chained: ${p}`);
 });

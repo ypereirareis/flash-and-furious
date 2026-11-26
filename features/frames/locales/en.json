@@ -1,0 +1,31 @@
+{
+  "frames": {
+    "names": {
+      "01-polaroid": "Polaroid",
+      "02-party": "Party",
+      "03-cinema": "Cinema",
+      "04-elegant": "Elegant"
+    },
+    "booth": {
+      "adding": "Adding the frame…"
+    },
+    "admin": {
+      "title": "Frame applied to photos",
+      "text": "Text shown on frames",
+      "placeholder": "e.g. Lea & Sam's wedding",
+      "textHint": "The same text for every frame. Today's date is added automatically on frames that show it.",
+      "hint": "Add your own frames (transparent PNG or SVG, 3:2 ratio) to the project's <code>frames/</code> folder.",
+      "none": "No frame",
+      "photoOnly": "Photo only"
+    },
+    "settings": {
+      "unknownFrame": "Unknown frame."
+    },
+    "journal": {
+      "with": "“{frame}” frame",
+      "settingFrame": "Frame: {value}",
+      "settingNoFrame": "Frame: none",
+      "settingTitle": "Frame text: “{value}”"
+    }
+  }
+}

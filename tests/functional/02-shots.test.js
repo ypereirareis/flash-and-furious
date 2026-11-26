@@ -6,14 +6,14 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const {
-  REAL, fakeOnly, photos, startServer, shoot, waitFullSize, media, orientedSize, colourAt, isGrey, waitFor,
+  REAL, fakeOnly, photos, startServer, shoot, waitFullSize, media, orientedSize, colourAt, waitFor,
 } = require('./helpers');
 
 let server;
 test.before(async () => { server = await startServer('shots'); });
 test.after(() => server.stop());
 
-/** Checks everything an edited photo (black & white, decorations...) must have. */
+/** Checks everything an edited photo must have (edited by the test module, modules/testedit). */
 async function checkProcessed(shot) {
   const { name } = shot.photo;
   await waitFullSize(server, name);
@@ -57,31 +57,20 @@ test('photo as taken', async () => {
   assert.equal(list[0].name, shot.photo.name);
 });
 
-test('photo in black & white', async () => {
-  const shot = await shoot(server, { bw: true, label: 'B&W' });
+test('edited photo: original kept aside, edited version at full size', async () => {
+  const shot = await shoot(server, { testEdit: true, label: 'edited' });
   assert.deepEqual(shot.errors, []);
-  assert.ok(shot.events.some((e) => e.type === 'phase' && e.phase === 'framing' && e.message === 'Converting to black & white…'), 'tablet told');
+  assert.ok(shot.events.some((e) => e.type === 'phase' && e.phase === 'editing' && e.message === 'Test edit…'), 'tablet told');
   const final = await checkProcessed(shot);
-  for (const [x, y] of [[0.3, 0.4], [0.5, 0.5], [0.7, 0.6]]) assert.ok(isGrey(await colourAt(final, x, y)), `grey at ${x},${y}`);
-});
-
-test('theme decorations on a photo without frame, in colour over black & white', async () => {
-  await server.settings({ theme: 'birthday', photoDeco: true });
-  const shot = await shoot(server, { bw: true, label: 'decorations, B&W' });
-  assert.deepEqual(shot.errors, []);
-  const final = await checkProcessed(shot);
-  const corner = [];
-  for (let x = 0.02; x < 0.25; x += 0.02) corner.push(await colourAt(final, x, 0.9));
-  assert.ok(corner.some((c) => !isGrey(c)), 'drawing in colour in the bottom-left corner');
-  assert.ok(isGrey(await colourAt(final, 0.6, 0.5)), 'photo in grey');
-  const [last] = (await server.json('/api/journal?limit=1')).entries;
-  assert.equal(last.message, 'Photo taken: theme decorations, black & white');
-  await server.settings({ photoDeco: false });
+  if (!REAL) {
+    const [r, , b] = await colourAt(final, 0.2, 0.2); // red half of the test photo, negated by the test module
+    assert.ok(r < 100 && b > 150, `edited: ${[r, b]}`);
+  }
 });
 
 test('camera held upright: portrait photo, the right way up', { skip: fakeOnly }, async () => {
   server.camera.photo(await photos.rotated());
-  const shot = await shoot(server, { bw: true });
+  const shot = await shoot(server, { testEdit: true });
   const final = await checkProcessed(shot);
   const [w, h] = await orientedSize(final);
   assert.ok(h > w, 'portrait');
@@ -90,7 +79,7 @@ test('camera held upright: portrait photo, the right way up', { skip: fakeOnly }
 
 test('RAW+JPEG: both files kept aside, only the JPEG in the gallery', { skip: fakeOnly }, async () => {
   server.camera.raw(true);
-  const shot = await shoot(server, { bw: true });
+  const shot = await shoot(server, { testEdit: true });
   server.camera.raw(false);
   await checkProcessed(shot);
   const base = shot.photo.name.replace(/\.jpg$/, '');
@@ -111,7 +100,7 @@ test('a second photo while one is in progress is refused', async () => {
 test('live view during the countdown, stopped for the capture', async () => {
   await server.settings({ live: true });
   const from = server.events.list.length;
-  const done = shoot(server, { bw: true, label: 'live view, B&W' });
+  const done = shoot(server, { testEdit: true, label: 'live view, edited' });
   // the tablet opens the MJPEG stream once live view is on
   await waitFor(() => server.events.list.slice(from).some((e) => e.type === 'live' && e.state === 'on'), { timeout: 20000, what: 'live view' });
   const res = await server.api('/api/live.mjpeg');
