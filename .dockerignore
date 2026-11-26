@@ -5,6 +5,6 @@ config
 .github
 .githooks
 scripts
-*.md
+**/*.md
 tests
 features/*/tests

@@ -6,7 +6,30 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
-const { REAL, photos, startServer, shoot, waitFullSize, media, colourAt, isGrey, WORK } = require('../../../../tests/functional/helpers');
+const { REAL, FIXTURES, photos: testPhotos, startServer, shoot, waitFullSize, media, colourAt, isGrey, WORK } = require('../../../../tests/functional/helpers');
+
+/**
+ * Green screen test photo: green cloth, a little darker at the bottom, with a skin-coloured
+ * "person" in the middle (40-60 % of the width, from 25 % of the height), light noise.
+ */
+async function greenFixture(name, width, height) {
+  const file = path.join(FIXTURES, name);
+  if (fs.existsSync(file)) return file;
+  fs.mkdirSync(FIXTURES, { recursive: true });
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+    <defs><linearGradient id="l" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2cb44a"/><stop offset="1" stop-color="#249a3e"/></linearGradient></defs>
+    <rect width="100%" height="100%" fill="url(#l)"/>
+    <rect x="40%" y="25%" width="20%" height="75%" rx="${Math.round(width / 40)}" fill="#e1af91"/></svg>`;
+  const noise = await sharp({ create: { width, height, channels: 3, noise: { type: 'gaussian', mean: 128, sigma: 8 } } })
+    .png()
+    .toBuffer();
+  await sharp(await sharp(Buffer.from(svg)).composite([{ input: noise, blend: 'soft-light' }]).png().toBuffer())
+    .jpeg({ quality: 92 })
+    .toFile(`${file}.tmp`);
+  fs.renameSync(`${file}.tmp`, file);
+  return file;
+}
+const photos = { ...testPhotos, green: () => greenFixture('green.jpg', 3888, 2592) };
 
 // the real camera does not see a green cloth: these tests need the fake one
 const skip = REAL && 'needs the fake camera (green cloth photo)';
@@ -76,7 +99,7 @@ test('photo: cloth replaced on every version, original kept as is', { skip }, as
   await server.settings({ greenScreen: true, background: '2-cyan' });
   const shot = await shoot(server, { label: 'green screen' });
   assert.deepEqual(shot.errors, []);
-  assert.ok(shot.events.some((e) => e.type === 'phase' && e.phase === 'framing' && e.message === 'Adding the background…'), 'tablet told');
+  assert.ok(shot.events.some((e) => e.type === 'phase' && e.phase === 'editing' && e.message === 'Adding the background…'), 'tablet told');
   const { name } = shot.photo;
   await waitFullSize(server, name);
   const final = path.join(server.photosDir, name);
@@ -129,7 +152,7 @@ test('switched off (not in FEATURES): no routes, no settings for /admin, photos 
     for (const k of ['greenScreen', 'background', 'greenTolerance', 'greenKey', 'greenPreview']) assert.ok(!(k in s), `no ${k}`);
     off.camera.photo(await photos.green());
     const shot = await shoot(off);
-    assert.ok(!shot.events.some((e) => e.type === 'phase' && e.phase === 'framing'), 'no processing');
+    assert.ok(!shot.events.some((e) => e.type === 'phase' && e.phase === 'editing'), 'no processing');
     assert.ok(!near(await colourAt(path.join(off.photosDir, shot.photo.name), 0.05, 0.05), MAGENTA), 'cloth kept');
   } finally {
     await off.stop();

@@ -17,7 +17,7 @@ test('FEATURES=none: no module on the screens, in the settings or on the photos'
     // asked for by an old tablet page: ignored
     const shot = await shoot(server, { bw: true });
     assert.deepEqual(shot.errors, []);
-    assert.ok(!shot.events.some((e) => e.type === 'phase' && e.phase === 'framing'), 'no processing');
+    assert.ok(!shot.events.some((e) => e.type === 'phase' && e.phase === 'editing'), 'no processing');
     const [last] = (await server.json('/api/journal?limit=1')).entries;
     assert.equal(last.message, 'Photo taken');
   } finally {

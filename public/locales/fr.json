@@ -156,7 +156,7 @@
     "photo": "Photo prise",
     "photoWith": "Photo prise : {details}",
     "shootFailed": "Pas de photo : {reason}",
-    "retouchFailed": "Le cadre n'a pas pu être appliqué : photo gardée telle quelle",
+    "retouchFailed": "La retouche de la photo a échoué : photo gardée telle quelle",
     "resumed": "{count} photo(s) interrompue(s) par un arrêt : traitement repris",
     "cameraConnected": "Appareil prêt : {model}",
     "cameraProblem": "Appareil : {reason}",

@@ -88,8 +88,6 @@ body { display: flex; flex-direction: column; }
   background: var(--panel-strong); color: var(--text); transition: transform .1s, background .2s; white-space: nowrap; }
 .big-btn svg { width: 34px; height: 34px; }
 .big-btn:active { transform: scale(.95); }
-.big-btn.frame { border-color: var(--mint); color: var(--mint); }
-.big-btn.frame.active { background: var(--mint); color: #0d3a2c; }
 .big-btn.mirror { border-color: var(--lilac); color: var(--lilac); }
 .big-btn.mirror.active { background: var(--lilac); color: #241048; }
 @keyframes pulse { 50% { box-shadow: 0 0 0 10px rgba(46, 230, 166, .25); } }

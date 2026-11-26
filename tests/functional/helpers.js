@@ -69,29 +69,7 @@ async function fixture(name, width, height, { orientation } = {}) {
   fs.renameSync(`${file}.tmp`, file);
   return file;
 }
-/**
- * Green screen test photo: green cloth, a little darker at the bottom, with a skin-coloured
- * "person" in the middle (40-60 % of the width, from 25 % of the height), light noise.
- */
-async function greenFixture(name, width, height) {
-  const file = path.join(FIXTURES, name);
-  if (fs.existsSync(file)) return file;
-  fs.mkdirSync(FIXTURES, { recursive: true });
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-    <defs><linearGradient id="l" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2cb44a"/><stop offset="1" stop-color="#249a3e"/></linearGradient></defs>
-    <rect width="100%" height="100%" fill="url(#l)"/>
-    <rect x="40%" y="25%" width="20%" height="75%" rx="${Math.round(width / 40)}" fill="#e1af91"/></svg>`;
-  const noise = await sharp({ create: { width, height, channels: 3, noise: { type: 'gaussian', mean: 128, sigma: 8 } } })
-    .png()
-    .toBuffer();
-  await sharp(await sharp(Buffer.from(svg)).composite([{ input: noise, blend: 'soft-light' }]).png().toBuffer())
-    .jpeg({ quality: 92 })
-    .toFile(`${file}.tmp`);
-  fs.renameSync(`${file}.tmp`, file);
-  return file;
-}
 const photos = {
-  green: () => greenFixture('green.jpg', 3888, 2592),
   p10: () => fixture('10mp.jpg', 3888, 2592), // Canon EOS 1000D
   p24: () => fixture('24mp.jpg', 6000, 4000),
   rotated: () => fixture('rotated.jpg', 3888, 2592, { orientation: 6 }), // camera held upright
@@ -152,6 +130,8 @@ async function startServer(name, { env = {}, dirs = null, waitCamera = true } = 
       LOOK_MESSAGE_SECONDS: '0',
       PRE_MESSAGE_SECONDS: '0',
       FOCUS_BEFORE_END: '0',
+      // the app's modules, and the test module (modules/testedit: { testEdit: true } in a shot)
+      FEATURES_DIR: [path.join(ROOT, 'features'), path.join(__dirname, 'modules')].join(path.delimiter),
       PUID: process.env.PUID || '',
       PGID: process.env.PGID || '',
       ...(REAL ? {} : { GPHOTO_BIN: FAKE_GPHOTO, FAKE_CAMERA_DIR: camera.dir }),
@@ -221,24 +201,25 @@ async function listen(url) {
 }
 
 /**
- * Takes a photo like the tablet does and waits for the end of the shot.
+ * Takes a photo like the tablet does and waits for the end of the shot. The other options are
+ * sent with the request (e.g. { bw: true }, or { testEdit: true } for the test module).
  * Returns { status, photo, errors, timings: { captureToTablet, processingWait } } (seconds).
  */
-async function shoot(server, { bw = false, label = '' } = {}) {
+async function shoot(server, { label = '', ...request } = {}) {
   await waitFor(async () => !(await server.status()).busy, { timeout: 60000, what: 'the booth to be free' });
   const ev = server.events.list;
   const from = ev.length;
-  const res = await server.api('/api/shoot', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ bw }) });
+  const res = await server.api('/api/shoot', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });
   if (res.status !== 202) return { status: res.status, body: await res.json() };
   const since = () => ev.slice(from);
   await waitFor(() => since().some((e) => e.type === 'phase' && e.phase === 'idle'), { timeout: 60000, what: 'the end of the shot' });
   const at = (pred) => (since().find(pred) || {}).at;
   const capturing = at((e) => e.phase === 'capturing');
-  const framing = at((e) => e.phase === 'framing');
+  const editing = at((e) => e.phase === 'editing');
   const photoEvent = since().find((e) => e.type === 'photo');
   const timings = {
     captureToTablet: photoEvent && capturing ? (photoEvent.at - capturing) / 1000 : null,
-    processingWait: photoEvent && framing ? (photoEvent.at - framing) / 1000 : null,
+    processingWait: photoEvent && editing ? (photoEvent.at - editing) / 1000 : null,
   };
   if (label && photoEvent) recordTiming(label, timings);
   return {
@@ -291,6 +272,6 @@ async function colourAt(file, fx, fy) {
 const isGrey = ([r, g, b]) => Math.max(r, g, b) - Math.min(r, g, b) <= 4;
 
 module.exports = {
-  CAMERA, REAL, WORK, fakeOnly, sleep, waitFor, photos, startServer, shoot, waitFullSize, media,
+  CAMERA, REAL, WORK, FIXTURES, fakeOnly, sleep, waitFor, photos, startServer, shoot, waitFullSize, media,
   orientedSize, colourAt, isGrey, recordTiming,
 };

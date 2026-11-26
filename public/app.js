@@ -219,7 +219,7 @@ function connectEvents() {
           startShooting();
           showOverlay('', t('booth.preparingLive'));
         } else if (ev.phase === 'focusing') showOverlay(undefined, t('booth.focusing'));
-        else if (ev.phase === 'framing') showOverlay(ev.icon, ev.message); // photo being edited: message from the server
+        else if (ev.phase === 'editing') showOverlay(ev.icon, ev.message); // photo being edited: message from the server
         else if (ev.phase === 'retrying') showOverlay('', t('booth.retrying'));
         else if (ev.phase === 'capturing') {
           hideLive(); // live view stops on capture

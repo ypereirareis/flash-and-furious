@@ -156,7 +156,7 @@
     "photo": "Photo taken",
     "photoWith": "Photo taken: {details}",
     "shootFailed": "No photo: {reason}",
-    "retouchFailed": "The frame could not be applied: photo saved as is",
+    "retouchFailed": "The photo could not be edited: photo saved as is",
     "resumed": "{count} photo(s) interrupted by a stop: processing resumed",
     "cameraConnected": "Camera ready: {model}",
     "cameraProblem": "Camera: {reason}",

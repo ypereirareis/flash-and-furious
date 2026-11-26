@@ -411,7 +411,7 @@ const jobFile = (name) => path.join(CACHE_DIR, `pending_${name}.json`);
  */
 async function processPhoto(files, jpeg, edits) {
   const what = features.journalDetails(edits).map(translate).join(' + ');
-  setPhase('framing', editStep(edits));
+  setPhase('editing', editStep(edits));
   const t = Date.now();
   for (const f of files) await fsp.rename(path.join(PHOTOS_DIR, f), path.join(ORIGINALS_DIR, f));
   const original = path.join(ORIGINALS_DIR, jpeg);

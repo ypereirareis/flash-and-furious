@@ -13,7 +13,6 @@ test.before(async () => {
   // no countdown: the next shot starts while the previous full-size photo is being computed
   server = await startServer('queue', { env: { DEFAULT_DELAY: '0' } });
   if (!REAL) server.camera.photo(await photos.p24());
-  await server.settings({ theme: 'christmas', photoDeco: true }); // every photo edited
 });
 test.after(() => server.stop());
 
@@ -21,7 +20,7 @@ test('burst of photos: each one shown at once, full sizes computed in order', as
   const shots = [];
   const pendingSeen = new Set();
   for (let i = 0; i < (REAL ? 3 : 4); i++) {
-    const shot = await shoot(server, { bw: i === 1, label: REAL ? 'burst' : 'burst (24 Mpx)' });
+    const shot = await shoot(server, { testEdit: true, label: REAL ? 'burst' : 'burst (24 Mpx)' });
     assert.deepEqual(shot.errors, []);
     assert.ok(shot.photo);
     shots.push(shot.photo);

@@ -38,18 +38,26 @@
 const path = require('path');
 const fs = require('fs');
 
-const DIR = path.resolve(process.env.FEATURES_DIR || path.join(__dirname, '..', 'features'));
+// Folders holding modules: features/ (FEATURES_DIR: several folders separated by ":", e.g. to
+// add the test modules of tests/functional/modules/)
+const DIRS = (process.env.FEATURES_DIR || path.join(__dirname, '..', 'features')).split(path.delimiter).filter(Boolean).map((d) => path.resolve(d));
 const STAGES = ['pixels', 'image', 'layers'];
 
 /** Module folders present: [{ id, dir }], sorted by name. */
 function present() {
-  let names = [];
-  try {
-    names = fs.readdirSync(DIR, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();
-  } catch (_) {
-    return [];
+  const found = [];
+  for (const root of DIRS) {
+    let names = [];
+    try {
+      names = fs.readdirSync(root, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
+    } catch (_) {
+      continue;
+    }
+    for (const id of names) {
+      if (/^[\w-]+$/.test(id) && fs.existsSync(path.join(root, id, 'index.js')) && !found.some((m) => m.id === id)) found.push({ id, dir: path.join(root, id) });
+    }
   }
-  return names.filter((id) => /^[\w-]+$/.test(id) && fs.existsSync(path.join(DIR, id, 'index.js'))).map((id) => ({ id, dir: path.join(DIR, id) }));
+  return found.sort((a, b) => a.id.localeCompare(b.id));
 }
 
 /** Ids asked for by FEATURES ("all" or unset: every module present, "none": none). */
@@ -209,6 +217,6 @@ function ui() {
 }
 
 module.exports = {
-  DIR, present, locales, load, active, get, inactiveKeys, forShot, steps, step, journalDetails, otherLayers,
+  DIRS, present, locales, load, active, get, inactiveKeys, forShot, steps, step, journalDetails, otherLayers,
   settingsDto, settingsPatch, journalSettings, mount, ui,
 };

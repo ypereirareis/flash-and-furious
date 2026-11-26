@@ -36,7 +36,7 @@ test('photo with a frame, in colour', async () => {
   assert.deepEqual([s.frame.id, s.frameTitle], ['01-polaroid', 'Functional tests']);
   const shot = await shoot(server, { label: 'frame, colour' });
   assert.deepEqual(shot.errors, []);
-  assert.ok(shot.events.some((e) => e.type === 'phase' && e.phase === 'framing' && e.message === 'Adding the frame…'), 'tablet told');
+  assert.ok(shot.events.some((e) => e.type === 'phase' && e.phase === 'editing' && e.message === 'Adding the frame…'), 'tablet told');
   const final = await finalFile(shot);
   if (!REAL) {
     const red = await colourAt(final, 0.2, 0.5);
@@ -101,7 +101,7 @@ test('switched off (not in FEATURES): no routes, no settings for the screens, ph
     const s = await off.settings({ frame: '02-party', frameTitle: 'x' }); // ignored, not refused
     for (const k of ['frame', 'frameTitle']) assert.ok(!(k in s), `no ${k}`);
     const shot = await shoot(off);
-    assert.ok(!shot.events.some((e) => e.type === 'phase' && e.phase === 'framing'), 'no processing');
+    assert.ok(!shot.events.some((e) => e.type === 'phase' && e.phase === 'editing'), 'no processing');
     assert.equal((await lastJournal(off)).message, 'Photo taken');
   } finally {
     await off.stop();
